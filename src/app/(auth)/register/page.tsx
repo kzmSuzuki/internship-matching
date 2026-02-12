@@ -23,12 +23,13 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
 
-    // Domain Validation
-    if (!email.endsWith('@example-university.ac.jp')) {
-      setError('大学のメールアドレス (@example-university.ac.jp) のみ登録可能です。');
-      setLoading(false);
-      return;
-    }
+    // Domain Validation Removed for Email Registration
+    // const allowedDomain = process.env.NEXT_PUBLIC_ALLOWED_EMAIL_DOMAIN || 'example-university.ac.jp';
+    // if (!email.endsWith(`@${allowedDomain}`)) {
+    //   setError(`大学のメールアドレス (@${allowedDomain}) のみ登録可能です。`);
+    //   setLoading(false);
+    //   return;
+    // }
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -90,7 +91,7 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="taro.yamada@example-university.ac.jp"
+            placeholder="taro.yamada@example.com"
           />
           <Input
             label="パスワード"

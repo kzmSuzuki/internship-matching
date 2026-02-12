@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// Runtime handled by OpenNext/Cloudflare adapter
 
 const GAS_API_URL = process.env.GAS_API_URL || 'YOUR_GAS_WEB_APP_URL';
 const GAS_API_KEY = process.env.GAS_API_KEY || 'YOUR_SECRET_API_KEY';

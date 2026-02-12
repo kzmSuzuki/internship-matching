@@ -1,0 +1,128 @@
+
+> internship-matching@0.1.0 deploy
+> npm run build:cf && npx opennextjs-cloudflare deploy
+
+
+> internship-matching@0.1.0 build:cf
+> npx opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && bash patch-handler.sh
+
+
+┌─────────────────────────────┐
+│ OpenNext — Cloudflare build │
+└─────────────────────────────┘
+
+App directory: /Users/kazuma/Documents/dev/intern/internship-matching
+Next.js version : 14.2.16
+WARN Next.js version 14.2.16 is not supported by the Next.js team.
+Major versions are supported for 2 years from their release date.
+Unsupported releases may contain unpatched security vulnerabilities.
+See https://nextjs.org/support-policy for more information.
+Continuing build due to --dangerouslyUseUnsupportedNextVersion flag.
+@opennextjs/cloudflare version: 1.16.4
+@opennextjs/aws version: 3.9.16
+
+┌─────────────────────────────────┐
+│ OpenNext — Building Next.js app │
+└─────────────────────────────────┘
+
+
+> internship-matching@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.16
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/21) ...
+   Generating static pages (5/21) 
+   Generating static pages (10/21) 
+   Generating static pages (15/21) 
+ ✓ Generating static pages (21/21)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    2.52 kB         233 kB
+├ ○ /_not-found                          873 B          88.1 kB
+├ ○ /admin/applications                  4.58 kB         225 kB
+├ ○ /admin/companies                     3.99 kB         217 kB
+├ ○ /admin/dashboard                     3.31 kB         223 kB
+├ ○ /admin/jobs                          3.73 kB         224 kB
+├ ○ /admin/users                         655 B          95.9 kB
+├ ƒ /api/pdf/[fileId]                    0 B                0 B
+├ ƒ /api/pdf/upload                      0 B                0 B
+├ ○ /company/applicants                  5.21 kB         226 kB
+├ ƒ /company/intern/[matchId]            4.86 kB         225 kB
+├ ○ /company/jobs                        2.7 kB          230 kB
+├ ○ /company/jobs/new                    4.67 kB         218 kB
+├ ○ /company/profile                     3.51 kB         217 kB
+├ ƒ /invite/[token]                      3.03 kB         216 kB
+├ ○ /login                               2.96 kB         223 kB
+├ ○ /register                            3.06 kB         223 kB
+├ ○ /settings/notifications              2.13 kB        97.4 kB
+├ ○ /student/applications                4.64 kB         232 kB
+├ ƒ /student/intern/[matchId]            5.36 kB         226 kB
+├ ○ /student/jobs                        2.79 kB         230 kB
+├ ƒ /student/jobs/[id]                   4.88 kB         225 kB
+└ ○ /student/profile                     3.63 kB         217 kB
++ First Load JS shared by all            87.2 kB
+  ├ chunks/117-570b1f3c6bab0c98.js       31.6 kB
+  ├ chunks/fd9d1056-46c85e8151c5b78b.js  53.6 kB
+  └ other shared chunks (total)          1.95 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+┌──────────────────────────────┐
+│ OpenNext — Generating bundle │
+└──────────────────────────────┘
+
+Bundling middleware function...
+Bundling static assets...
+Bundling cache assets...
+Building server function: default...
+Applying code patches: 2.418s
+# copyPackageTemplateFiles
+[35m⚙️ Bundling the OpenNext server...
+[0m
+[35mWorker saved in `.open-next/worker.js` 🚀
+[0m
+OpenNext build complete.
+Patching handler.mjs to remove disallowed Function() calls...
+Patching complete!
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+Remaining Function( calls:        0
+
+┌──────────────────────────────┐
+│ OpenNext — Cloudflare deploy │
+└──────────────────────────────┘
+
+Using vars defined in .dev.vars
+Incremental cache does not need populating
+Tag cache does not need populating
+
+ ⛅️ wrangler 4.64.0
+───────────────────
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mBuild failed with 1 error:[0m
+
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mSyntax error ")"[0m
+  
+      .open-next/server-functions/default/handler.mjs:115:5069:
+  [37m      115 │ ...){throw new Error("No require"\[32m[37m)})(moduleName);if(mod&&(mod.le...
+            ╵                                   [32m^[0m
+  
+  
+
+
+🪵  Logs were written to "/Users/kazuma/Library/Preferences/.wrangler/logs/wrangler-2026-02-12_11-43-56_546.log"
+ERROR Wrangler command failed

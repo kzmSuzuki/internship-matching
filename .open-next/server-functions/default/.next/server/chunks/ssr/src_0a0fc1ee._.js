@@ -1,3 +1,0 @@
-module.exports=[62067,a=>{"use strict";var b=a.i(87924),c=a.i(72131),d=a.i(68114);let e=(0,c.forwardRef)(({className:a,...c},e)=>(0,b.jsx)("div",{ref:e,className:(0,d.cn)("glass rounded-2xl p-6 transition-all duration-300",a),...c}));e.displayName="Card",a.s(["Card",0,e])},60237,a=>{"use strict";var b=a.i(87924),c=a.i(62067);function d(){return(0,b.jsxs)("div",{className:"space-y-6",children:[(0,b.jsxs)("div",{children:[(0,b.jsx)("h1",{className:"text-2xl font-bold text-gray-800",children:"ユーザー管理"}),(0,b.jsx)("p",{className:"text-gray-500",children:"この機能は現在開発中です。"})]}),(0,b.jsx)(c.Card,{className:"p-12 text-center text-gray-400",children:"Coming Soon..."})]})}a.s(["default",()=>d])}];
-
-//# sourceMappingURL=src_0a0fc1ee._.js.map

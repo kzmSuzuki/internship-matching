@@ -34,7 +34,11 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated(); // Authenticated users can read basic info
       allow create: if isOwner(userId); // Users create their own record on signup
-      allow update: if isOwner(userId) || isAdmin();
+      
+      // Update: Owner can update profile, BUT CANNOT CHANGE ROLE. Admin can change everything.
+      // We check that 'role' is not being modified if user is just Owner (not Admin).
+      allow update: if isAdmin() || (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+      
       allow delete: if isAdmin();
     }
 
@@ -101,26 +105,15 @@ service cloud.firestore {
     // --- Daily Reports ---
     match /dailyReports/{reportId} {
       allow read: if isAuthenticated() && (
+        // Read: Owner (Student), Admin, or explicitly authorized Company (via match)
         resource.data.studentId == request.auth.uid ||
-        // Check match ownership for company access is complex in rules without denormalization,
-        // assuming company reads based on known IDs or we verify match relationship
         isAdmin() ||
-        // Allow if user is listed as company in the doc (if we denormalized companyId, but we didn't). 
-        // We relying on knowing the ID. 
-        // For MVP security, we can afford loose read if we don't have sensitive data, 
-        // OR we just allow authenticated read if strict check is too hard.
-        // Let's stick to "If it works don't break it", but we need Company to read reports!
-        // Company creates comments -> update.
-        // Company READS reports? Yes.
-        // Let's allow read if authenticatd for now to be safe on Company side, 
-        // or improve query. The query uses `where('matchId', ...)`
-        // Ideally we check if request.auth.uid is the company of that match.
-        // But we don't have companyId on DailyReport.
-        // FIX: We should have stored companyId or validated via Match.
-        // For Phase 10 validation: Allow read if isAuthenticated() is easiest but insecure.
-        // Better: Allow read if resource.data.studentId == auth OR ...
-        // We will assume 'isAuthenticated()' for READ of reports for MVP simplicity if IDs are guarded.
-        isAuthenticated() 
+        // For Company: Ideally check if request.auth.uid is the companyId in the related 'matches' doc.
+        // Since we can't easily join, we rely on the fact that companies only know reportIds if they are relevant,
+        // AND we enforce that they must be a 'company' role.
+        // This prevents random students from enumerating reports if we use random IDs (Firestore IDs are random).
+        // For stricter security, we should store 'companyId' on the report doc.
+        isCompany()
       );
       allow create: if isStudent() && request.resource.data.studentId == request.auth.uid;
       allow update: if isAuthenticated() && (

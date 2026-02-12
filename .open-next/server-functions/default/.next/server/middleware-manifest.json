@@ -1,67 +1,6 @@
 {
   "version": 3,
   "middleware": {},
-  "sortedMiddleware": [],
-  "functions": {
-    "/api/pdf/[fileId]/route": {
-      "files": [
-        "server/middleware-build-manifest.js",
-        "server/interception-route-rewrite-manifest.js",
-        "required-server-files.js",
-        "server/server-reference-manifest.js",
-        "server/app/api/pdf/[fileId]/route_client-reference-manifest.js",
-        "server/edge/chunks/_next-internal_server_app_api_pdf_[fileId]_route_actions_f2848489.js",
-        "server/edge/chunks/node_modules_next_dist_esm_9dc6cb6d._.js",
-        "server/edge/chunks/[root-of-the-server]__04458a80._.js",
-        "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_40bc056f.js"
-      ],
-      "name": "app/api/pdf/[fileId]/route",
-      "page": "/api/pdf/[fileId]/route",
-      "matchers": [
-        {
-          "regexp": "^/api/pdf/(?P<nxtPfileId>[^/]+?)(?:/)?$",
-          "originalSource": "/api/pdf/[fileId]"
-        }
-      ],
-      "wasm": [],
-      "assets": [],
-      "env": {
-        "__NEXT_BUILD_ID": "AVEAc1v8HJZKt6Je5rfn5",
-        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "xx1sPrMtWtGlGlq/C8Laxvyi/TF6wZB1CUlUHisu/40=",
-        "__NEXT_PREVIEW_MODE_ID": "a5c1a2bf5ba7645baf87eb0698ff4a51",
-        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "4d930a5ce2f64eebb6750e444062689373f3d91beecae1f72e955a0818834d3f",
-        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "e0bf159b913eb6a6fd13f9a98da284ffc93cd5cd92da76a672cc114369e5f08c"
-      }
-    },
-    "/api/pdf/upload/route": {
-      "files": [
-        "server/middleware-build-manifest.js",
-        "server/interception-route-rewrite-manifest.js",
-        "required-server-files.js",
-        "server/server-reference-manifest.js",
-        "server/app/api/pdf/upload/route_client-reference-manifest.js",
-        "server/edge/chunks/_next-internal_server_app_api_pdf_upload_route_actions_f65ee6c4.js",
-        "server/edge/chunks/node_modules_next_dist_esm_c69b1576._.js",
-        "server/edge/chunks/[root-of-the-server]__04458a80._.js",
-        "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_8dd3c8ca.js"
-      ],
-      "name": "app/api/pdf/upload/route",
-      "page": "/api/pdf/upload/route",
-      "matchers": [
-        {
-          "regexp": "^/api/pdf/upload(?:/)?$",
-          "originalSource": "/api/pdf/upload"
-        }
-      ],
-      "wasm": [],
-      "assets": [],
-      "env": {
-        "__NEXT_BUILD_ID": "AVEAc1v8HJZKt6Je5rfn5",
-        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "xx1sPrMtWtGlGlq/C8Laxvyi/TF6wZB1CUlUHisu/40=",
-        "__NEXT_PREVIEW_MODE_ID": "a5c1a2bf5ba7645baf87eb0698ff4a51",
-        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "4d930a5ce2f64eebb6750e444062689373f3d91beecae1f72e955a0818834d3f",
-        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "e0bf159b913eb6a6fd13f9a98da284ffc93cd5cd92da76a672cc114369e5f08c"
-      }
-    }
-  }
+  "functions": {},
+  "sortedMiddleware": []
 }

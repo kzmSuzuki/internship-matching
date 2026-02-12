@@ -1,16 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// Runtime handled by OpenNext/Cloudflare adapter
 
 const GAS_API_URL = process.env.GAS_API_URL || 'YOUR_GAS_WEB_APP_URL';
 const GAS_API_KEY = process.env.GAS_API_KEY || 'YOUR_SECRET_API_KEY';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ fileId: string }> }) {
   try {
+    // --- Security Check ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized: Missing token' }, { status: 401 });
+    }
+    const idToken = authHeader.split('Bearer ')[1];
+
+    // Verify token using Firebase Auth REST API (since we don't have firebase-admin)
+    // https://firebase.google.com/docs/reference/rest/auth#section-get-account-info
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    if (!apiKey) {
+      console.error('Missing NEXT_PUBLIC_FIREBASE_API_KEY');
+       return NextResponse.json({ error: 'Server Configuration Error' }, { status: 500 });
+    }
+
+    const verifyUrl = `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`;
+    const verifyRes = await fetch(verifyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken })
+    });
+
+    if (!verifyRes.ok) {
+       return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+    }
+    // ---------------------
+
     const { fileId } = await params;
     
     // Fetch from GAS
     // Note: GAS `doGet` expects query parameters
+    // GAS_API_KEY should be set in .env.local / .dev.vars
     const url = `${GAS_API_URL}?apiKey=${GAS_API_KEY}&fileId=${fileId}`;
     
     const response = await fetch(url);

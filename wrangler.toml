@@ -1,9 +1,11 @@
 name = "internship-matching"
-compatibility_date = "2024-09-23"
+main = ".open-next/worker.js"
+compatibility_date = "2025-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-[vars]
-NEXT_PUBLIC_ALLOWED_EMAIL_DOMAIN = "example-university.ac.jp"
-# GAS_API_URL など...
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
 
-# GAS_API_KEY は wrangler secret put GAS_API_KEY で設定
+[vars]
+NEXT_PUBLIC_ALLOWED_EMAIL_DOMAIN = "kamiyama.ac.jp"

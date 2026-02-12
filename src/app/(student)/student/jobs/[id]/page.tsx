@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from 'react';
 import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { JobPosting, Company, Application } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -44,13 +44,28 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           setCompany(companySnap.docs[0].data() as Company);
         }
 
-        // Fetch PDF URL if fileId exists (Using GAS API)
+        // Fetch PDF URL if fileId exists (Using GAS API via protected route)
         if (jobData.pdfFileId) {
-           // TODO: Implement actual GAS API call via Next.js API Route for security or direct
-           // For prototype, we use the GAS Web App URL directly or via a proxy route
-           // Ideally: /api/pdf/[fileId] -> fetches base64 -> renders
-           // Here we construct the URL to our internal API Route
-           setPdfUrl(`/api/pdf/${jobData.pdfFileId}`);
+           try {
+             // user object from context might be custom type, use auth.currentUser for token
+             const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+             
+             if (token) {
+               const res = await fetch(`/api/pdf/${jobData.pdfFileId}`, {
+                 headers: { Authorization: `Bearer ${token}` }
+               });
+               
+               if (res.ok) {
+                 const blob = await res.blob();
+                 const url = URL.createObjectURL(blob);
+                 setPdfUrl(url);
+               } else {
+                 console.error('Failed to fetch PDF');
+               }
+             }
+           } catch (e) {
+             console.error('Error fetching PDF:', e);
+           }
         }
 
         // Check for existing application

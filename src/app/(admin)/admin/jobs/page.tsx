@@ -1,5 +1,6 @@
 "use client";
 
+import { auth } from '@/lib/firebase';
 import { useEffect, useState } from 'react';
 import { adminService } from '@/services/admin';
 import { JobPosting } from '@/types';

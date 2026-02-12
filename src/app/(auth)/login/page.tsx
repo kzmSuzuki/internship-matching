@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
@@ -35,12 +35,23 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const allowedDomain = process.env.NEXT_PUBLIC_ALLOWED_EMAIL_DOMAIN || 'example-university.ac.jp';
+      
+      if (user.email && !user.email.endsWith(`@${allowedDomain}`)) {
+         await signOut(auth);
+         setError(`Googleログインは @${allowedDomain} のアカウントのみ使用可能です。`);
+         setLoading(false);
+         return;
+      }
+      
       router.push('/');
     } catch (err: any) {
+      console.error(err);
       setError('Googleログインに失敗しました。');
     } finally {
-      setLoading(false);
+      if (loading) setLoading(false); // only set if not redirected/returned
     }
   };
 
@@ -62,7 +73,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="taro.yamada@example-university.ac.jp"
+            placeholder="taro.yamada@example.com"
           />
           <Input
             label="パスワード"
