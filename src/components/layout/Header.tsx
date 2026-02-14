@@ -1,5 +1,6 @@
 "use client";
 
+import Link from 'next/link';
 import { Search as SearchIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -24,13 +25,13 @@ export function Header() {
       <div className="flex items-center gap-4">
         <NotificationBell />
         
-        <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+        <Link href={user?.role === 'student' ? '/student/profile' : user?.role === 'company' ? '/company/profile' : '/'} className="flex items-center gap-3 pl-4 border-l border-gray-200 hover:opacity-80 transition-opacity">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-medium text-[#161B33]">{user?.name || 'ゲスト'}</p>
             <p className="text-xs text-gray-500">{user?.role === 'student' ? '学生アカウント' : user?.role === 'company' ? '企業アカウント' : user?.role === 'admin' ? '管理者' : 'ゲスト'}</p>
           </div>
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#161B33] to-[#2D5A8E] shadow-md border-2 border-white cursor-pointer" />
-        </div>
+        </Link>
       </div>
     </header>
   );

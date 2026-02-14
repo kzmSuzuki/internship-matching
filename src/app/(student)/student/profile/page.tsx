@@ -111,8 +111,8 @@ export default function StudentProfilePage() {
           />
           
           <Input
-            label="大学・学部・学科"
-            value={profile.university || ''}
+            label="高専・学科"
+            value={profile.university || '神山まるごと高専　デザイン・エンジニアリング学科'}
             onChange={(e) => setProfile({ ...profile, university: e.target.value })}
             placeholder="〇〇大学 工学部 情報工学科"
           />
@@ -121,7 +121,7 @@ export default function StudentProfilePage() {
             label="学年"
             value={profile.grade}
             onChange={(e) => setProfile({ ...profile, grade: e.target.value })}
-            placeholder="学部3年 / 修士1年"
+            placeholder="4年生"
           />
 
           <div className="space-y-4">
@@ -144,7 +144,7 @@ export default function StudentProfilePage() {
               <Input
                 value={profile.skills.join(', ')}
                 onChange={(e) => setProfile({ ...profile, skills: e.target.value.split(',').map(s => s.trim()) })}
-                placeholder="TypeScript, React, Golang, Python"
+                placeholder="TypeScript, React, Photoshop, Illustrator"
               />
             </div>
 

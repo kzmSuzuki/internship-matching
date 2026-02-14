@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Runtime handled by OpenNext/Cloudflare adapter
 
-const GAS_API_URL = process.env.GAS_API_URL || 'YOUR_GAS_WEB_APP_URL';
-const GAS_API_KEY = process.env.GAS_API_KEY || 'YOUR_SECRET_API_KEY';
+const GAS_API_URL = process.env.GAS_API_URL || '';
+const GAS_API_KEY = process.env.GAS_API_KEY || '';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ fileId: string }> }) {
   try {
@@ -14,8 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
     }
     const idToken = authHeader.split('Bearer ')[1];
 
-    // Verify token using Firebase Auth REST API (since we don't have firebase-admin)
-    // https://firebase.google.com/docs/reference/rest/auth#section-get-account-info
+    // Verify token using Firebase Auth REST API
     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
     if (!apiKey) {
       console.error('Missing NEXT_PUBLIC_FIREBASE_API_KEY');
@@ -34,30 +33,54 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
     }
     // ---------------------
 
+    // Validate GAS config
+    if (!GAS_API_URL) {
+      return NextResponse.json({ error: 'GAS API URL not configured' }, { status: 500 });
+    }
+
     const { fileId } = await params;
     
     // Fetch from GAS
-    // Note: GAS `doGet` expects query parameters
-    // GAS_API_KEY should be set in .env.local / .dev.vars
-    const url = `${GAS_API_URL}?apiKey=${GAS_API_KEY}&fileId=${fileId}`;
+    const url = new URL(GAS_API_URL);
+    url.searchParams.append('apiKey', GAS_API_KEY);
+    url.searchParams.append('fileId', fileId);
     
-    const response = await fetch(url);
-    if (!response.ok) {
-         throw new Error('GAS API Error');
+    console.log(`[PDF Fetch] Requesting fileId=${fileId}`);
+
+    const response = await fetch(url.toString(), { 
+        redirect: 'follow',
+        cache: 'no-store' 
+    });
+
+    // Read as text first for debugging
+    const responseText = await response.text();
+
+    // Check for HTML response (GAS error/login page)
+    if (responseText.startsWith('<!DOCTYPE') || responseText.startsWith('<html')) {
+      console.error('[PDF Fetch] GAS returned HTML instead of JSON');
+      return NextResponse.json({ error: 'GAS API error' }, { status: 500 });
     }
 
-    const result = await response.json();
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      console.error('[PDF Fetch] Failed to parse GAS response:', responseText.substring(0, 200));
+      return NextResponse.json({ error: 'Invalid GAS response' }, { status: 500 });
+    }
     
     if (result.error) {
-         return NextResponse.json({ error: result.error }, { status: 404 });
+      return NextResponse.json({ error: result.error }, { status: 404 });
     }
 
-    // Return the base64 data directly or construct a stream?
-    // For simple viewer iframe src="data:application/pdf;base64,...", we can return the base64 or serve as binary.
-    // If we want to serve as binary (normal PDF):
+    // Return as binary PDF
     if (result.data) {
-        const binaryString = atob(result.data);
+        // Remove any newlines or whitespace from base64 string
+        const base64Clean = result.data.replace(/[\r\n\s]/g, '');
+        const binaryString = atob(base64Clean);
         const len = binaryString.length;
+        console.log(`[PDF Fetch] Success. Data length: ${len}`);
+        
         const bytes = new Uint8Array(len);
         for (let i = 0; i < len; i++) {
             bytes[i] = binaryString.charCodeAt(i);
@@ -66,14 +89,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
         return new NextResponse(bytes, {
             headers: {
                 'Content-Type': result.mimeType || 'application/pdf',
-                'Content-Disposition': `inline; filename="${result.fileName}"`,
+                'Content-Disposition': `inline; filename="${result.fileName || 'document.pdf'}"`,
+                'Cache-Control': 'no-store, max-age=0',
             }
         });
     }
 
     return NextResponse.json({ error: 'No data found' }, { status: 404 });
   } catch (error: any) {
-    console.error('PDF Fetch Error:', error);
+    console.error('[PDF Fetch] Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

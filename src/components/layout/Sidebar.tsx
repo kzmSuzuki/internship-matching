@@ -3,19 +3,61 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Home, Search, Briefcase, FileText, User, Settings, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  Home, Search, Briefcase, FileText, User, Settings, LogOut,
+  LayoutDashboard, Users, CheckCircle, Building, Globe, GraduationCap, Handshake
+} from 'lucide-react';
 
-const MENU_ITEMS = [
-  { icon: Home, label: 'ホーム', href: '/' },
-  { icon: Search, label: '求人検索', href: '/student/jobs' }, // Role based switching needed later
-  { icon: Briefcase, label: '企業求人', href: '/company/jobs' },
-  { icon: FileText, label: '応募管理', href: '/student/applications' },
-  { icon: User, label: 'プロフィール', href: '/student/profile' },
-  { icon: Settings, label: '設定', href: '/settings' },
-];
+interface MenuItem {
+  icon: any;
+  label: string;
+  href: string;
+}
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
+  
+  // Debug log
+  console.log('Sidebar user role:', user?.role);
+
+  const getMenuItems = (): MenuItem[] => {
+    if (!user) return [];
+
+    switch (user.role) {
+      case 'student':
+        return [
+          { icon: Home, label: 'ホーム', href: '/' },
+          { icon: Search, label: '求人検索', href: '/student/jobs' },
+          { icon: FileText, label: '応募履歴', href: '/student/applications' },
+          { icon: User, label: 'プロフィール', href: '/student/profile' },
+        ];
+      
+      case 'company':
+        return [
+          { icon: LayoutDashboard, label: 'ダッシュボード', href: '/company/dashboard' },
+          { icon: Briefcase, label: '自社求人管理', href: '/company/jobs' },
+          { icon: Users, label: '応募者管理', href: '/company/applicants' },
+          { icon: User, label: '企業情報', href: '/company/profile' },
+        ];
+      
+      case 'admin':
+        return [
+          { icon: LayoutDashboard, label: 'ダッシュボード', href: '/admin/dashboard' },
+          { icon: CheckCircle, label: '求人承認', href: '/admin/jobs' },
+          { icon: FileText, label: '応募管理', href: '/admin/applications' },
+          { icon: Users, label: 'ユーザー管理', href: '/admin/users' },
+          { icon: Building, label: '企業管理', href: '/admin/companies' },
+          { icon: Handshake, label: 'インターン実施状況', href: '/admin/matches' },
+        ];
+      
+      default:
+        return [{ icon: Home, label: 'ホーム', href: '/' }];
+    }
+  };
+
+  const menuItems = getMenuItems();
 
   return (
     <aside className="fixed left-4 top-4 z-40 h-[calc(100vh-2rem)] w-18 glass rounded-2xl border-r-0 flex flex-col items-center py-6 transition-all duration-300">
@@ -24,8 +66,8 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 flex flex-col gap-4 w-full px-2">
-        {MENU_ITEMS.map((item) => {
-          const isActive = pathname === item.href;
+        {menuItems.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link
               key={item.href}
@@ -48,7 +90,10 @@ export function Sidebar() {
         })}
       </nav>
 
-      <button className="mt-auto p-3 text-gray-500 hover:text-[#F56565] hover:bg-[#F56565]/10 rounded-xl transition-all">
+      <button 
+        onClick={logout}
+        className="mt-auto p-3 text-gray-500 hover:text-[#F56565] hover:bg-[#F56565]/10 rounded-xl transition-all"
+      >
         <LogOut size={22} />
       </button>
     </aside>

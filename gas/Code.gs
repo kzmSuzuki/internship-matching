@@ -30,6 +30,21 @@ function doPost(e) {
     if (data.apiKey !== API_KEY) {
       return createResponse({ error: 'Unauthorized' });
     }
+
+    // Email Sending Feature
+    if (data.action === 'send_email') {
+      const { to, subject, body } = data;
+      if (!to || !subject || !body) {
+        return createResponse({ error: 'Missing email parameters' });
+      }
+      MailApp.sendEmail({
+        to: to,
+        subject: subject,
+        body: body
+      });
+      return createResponse({ success: true, message: 'Email sent' });
+    }
+
     const { fileName, fileData, mimeType = 'application/pdf' } = data;
     if (!fileName || !fileData) {
       return createResponse({ error: 'fileName and fileData are required' });

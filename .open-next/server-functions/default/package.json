@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "build:cf": "npx opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && bash patch-handler.sh",
-    "preview": "npx opennextjs-cloudflare build && npx opennextjs-cloudflare preview",
+    "preview": "npx opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && bash patch-handler.sh && npx opennextjs-cloudflare preview",
     "deploy": "npm run build:cf && npx opennextjs-cloudflare deploy"
   },
   "dependencies": {

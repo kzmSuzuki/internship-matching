@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}";
+self.__REACT_LOADABLE_MANIFEST='{"app/(student)/student/jobs/page.tsx -> firebase/firestore":{"id":6943,"files":[]}}';

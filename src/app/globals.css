@@ -8,7 +8,7 @@ body {
   color: var(--foreground);
   background: linear-gradient(90deg, #d2dde1 0%, #ffffff 100%); /* Pale Blue to White to Soft Indigo */
   background-attachment: fixed; /* Keep gradient fixed on scroll */
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Helvetica Neue", Arial, "Yu Gothic", "YuGothic", "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
   min-height: 100vh;
 }
 

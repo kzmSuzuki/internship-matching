@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, LayoutDashboard, Briefcase, FileText, Users, Building, LogOut } from 'lucide-react';
+import { Loader2, LayoutDashboard, Briefcase, FileText, Users, Building, LogOut, Handshake } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -40,8 +40,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           
           <nav className="flex-1 p-4 space-y-2">
              <NavLink href="/admin/dashboard" icon={<LayoutDashboard size={18} />} label="ダッシュボード" />
-             <NavLink href="/admin/jobs" icon={<Briefcase size={18} />} label="求人承認" />
+             <NavLink href="/admin/jobs" icon={<Briefcase size={18} />} label="求人管理" />
              <NavLink href="/admin/applications" icon={<FileText size={18} />} label="応募承認" />
+             <NavLink href="/admin/matches" icon={<Handshake size={18} />} label="インターン実施状況" />
              <div className="pt-4 pb-2 text-xs font-bold opacity-50 uppercase tracking-widest">Management</div>
              <NavLink href="/admin/users" icon={<Users size={18} />} label="ユーザー管理" />
              <NavLink href="/admin/companies" icon={<Building size={18} />} label="企業管理" />

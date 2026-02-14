@@ -38,6 +38,7 @@ export type JobStatus = 'draft' | 'pending_approval' | 'published' | 'closed';
 export interface JobPosting {
   id: string;
   companyId: string;
+  companyName?: string; // Denormalized for display
   title: string;
   content: string;
   requirements: string[]; // List of skills or requirements

@@ -23,30 +23,54 @@ export default function JobListPage() {
   useEffect(() => {
     async function fetchJobs() {
       try {
-        // Query published jobs
-        const q = query(
-          collection(db, 'jobPostings'),
-          where('status', '==', 'published'),
-          orderBy('createdAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
+        let jobsData: JobPosting[];
         
-        const jobsData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as JobPosting[];
+        try {
+          // Query published jobs (requires composite index: status + createdAt)
+          const q = query(
+            collection(db, 'jobPostings'),
+            where('status', '==', 'published'),
+            orderBy('createdAt', 'desc')
+          );
+          const snapshot = await getDocs(q);
+          jobsData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as JobPosting[];
+        } catch (indexError: any) {
+          // Fallback if composite index is missing
+          if (indexError.code === 'failed-precondition' || indexError.message?.includes('index')) {
+            console.warn('Composite index missing for published jobs query, falling back to unordered query.');
+            const q = query(
+              collection(db, 'jobPostings'),
+              where('status', '==', 'published')
+            );
+            const snapshot = await getDocs(q);
+            jobsData = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            })) as JobPosting[];
+            // Sort client-side
+            jobsData.sort((a, b) => {
+              const aTime = a.createdAt?.toMillis?.() ?? 0;
+              const bTime = b.createdAt?.toMillis?.() ?? 0;
+              return bTime - aTime;
+            });
+          } else {
+            throw indexError;
+          }
+        }
 
-        // Fetch company data for each job
-        // Optimized: In a real app with many jobs, we would index/denormalize company name or use aggregations.
-        // For now, we fetch company details individually (or cached).
+        // Fetch company data for each job using direct doc reference
         const jobsWithCompany = await Promise.all(jobsData.map(async (job) => {
-          // Note: In Phase 5, Companies will be created. 
-          // For now, we might not find company data if not creating dummy data carefully.
-          // We'll try to fetch it.
-          const companyDoc = await getDocs(query(collection(db, 'companies'), where('userId', '==', job.companyId)));
-          const company = !companyDoc.empty ? (companyDoc.docs[0].data() as Company) : undefined;
-          
-          return { ...job, company };
+          try {
+            const { getDoc, doc: firestoreDoc } = await import('firebase/firestore');
+            const companySnap = await getDoc(firestoreDoc(db, 'companies', job.companyId));
+            const company = companySnap.exists() ? (companySnap.data() as Company) : undefined;
+            return { ...job, company };
+          } catch {
+            return { ...job, company: undefined };
+          }
         }));
 
         setJobs(jobsWithCompany);
@@ -102,7 +126,7 @@ export default function JobListPage() {
                     </h3>
                     <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
                       <Building size={14} />
-                      <span>{job.company?.name || '企業名不明'}</span>
+                      <span>{job.companyName || job.company?.name || '企業名不明'}</span>
                     </div>
                   </div>
                   {job.status === 'published' && <Badge variant="success">募集中</Badge>}
@@ -125,7 +149,7 @@ export default function JobListPage() {
                 </div>
 
                 <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between text-xs text-gray-400">
-                  <span>投稿: {job.createdAt ? format(job.createdAt.toDate(), 'yyyy/MM/dd') : '-'}</span>
+                  <span>投稿: {job.createdAt?.toDate ? format(job.createdAt.toDate(), 'yyyy/MM/dd') : '-'}</span>
                 </div>
               </Card>
             </Link>

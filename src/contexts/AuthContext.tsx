@@ -11,41 +11,51 @@ interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
+  emailVerified: boolean;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   firebaseUser: null,
   loading: true,
+  emailVerified: false,
   logout: async () => {},
+  refreshUser: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(false);
   const router = useRouter();
+
+  const fetchUserData = async (fbUser: FirebaseUser) => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', fbUser.uid));
+      if (userDoc.exists()) {
+        setUser({ id: userDoc.id, ...userDoc.data() } as User);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      setUser(null);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
 
       if (fbUser) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', fbUser.uid));
-          if (userDoc.exists()) {
-            setUser({ id: userDoc.id, ...userDoc.data() } as User);
-          } else {
-            // User exists in Auth but not in Firestore (e.g. during registration)
-            setUser(null);
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          setUser(null);
-        }
+        setEmailVerified(fbUser.emailVerified);
+        await fetchUserData(fbUser);
       } else {
         setUser(null);
+        setEmailVerified(false);
       }
       setLoading(false);
     });
@@ -57,11 +67,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth);
     setUser(null);
     setFirebaseUser(null);
+    setEmailVerified(false);
     router.push('/login');
   };
 
+  const refreshUser = async () => {
+    const fbUser = auth.currentUser;
+    if (fbUser) {
+      await fbUser.reload();
+      setEmailVerified(fbUser.emailVerified);
+      await fetchUserData(fbUser);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, logout }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, emailVerified, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

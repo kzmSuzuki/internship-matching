@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { internshipService } from '@/services/internship';
 import { Match, DailyReport, Evaluation, Company } from '@/types';
@@ -14,8 +14,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Loader2, Plus, Calendar as CalendarIcon, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function StudentInternshipPage({ params }: { params: Promise<{ matchId: string }> }) {
-  const { matchId } = use(params);
+export default function StudentInternshipPage({ params }: { params: { matchId: string } }) {
+  const { matchId } = params;
   const { user } = useAuth();
   const [match, setMatch] = useState<Match | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -96,9 +96,24 @@ export default function StudentInternshipPage({ params }: { params: Promise<{ ma
        setReportContent('');
        setReportLearning('');
        setReportGoals('');
-    } catch (error) {
-       console.error(error);
-       alert('日報の作成に失敗しました');
+    } catch (error: any) {
+       console.error("Failed to create report:", error);
+       
+       let errorMsg = '日報の作成に失敗しました';
+       if (error.code === 'permission-denied') {
+          errorMsg = '権限がありません。管理者にお問い合わせください。';
+          // Additional logging for debugging permission issues
+          console.error("Permission context:", { 
+             uid: user.id, 
+             role: user.role, 
+             matchStudentId: match.studentId,
+             reportDate: reportDate 
+          });
+       } else if (error.message) {
+          errorMsg += `: ${error.message}`;
+       }
+       
+       alert(errorMsg);
     } finally {
        setSubmittingReport(false);
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { internshipService } from '@/services/internship';
 import { Match, DailyReport, Evaluation, Student } from '@/types';
@@ -12,8 +12,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Loader2, Calendar as CalendarIcon, CheckCircle, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function CompanyInternshipPage({ params }: { params: Promise<{ matchId: string }> }) {
-  const { matchId } = use(params);
+export default function CompanyInternshipPage({ params }: { params: { matchId: string } }) {
+  const { matchId } = params;
   const { user } = useAuth();
   const [match, setMatch] = useState<Match | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
@@ -172,7 +172,7 @@ export default function CompanyInternshipPage({ params }: { params: Promise<{ ma
                 </Card>
              ) : (
                 <div className="space-y-4">
-                   {reports.map(report => (
+                   {reports.map((report) => (
                       <Card key={report.id} className="p-5">
                          <div className="flex items-center gap-2 mb-3 border-b pb-2">
                             <CalendarIcon size={16} className="text-gray-400" />

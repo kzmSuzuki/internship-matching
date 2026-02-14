@@ -12,7 +12,7 @@ import { Notification } from '@/types';
 
 export function NotificationBell() {
   const { user } = useAuth();
-  const { notifications, unreadCount } = useNotifications(user?.id);
+  const { notifications, unreadCount } = useNotifications(user?.id, user?.role);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);

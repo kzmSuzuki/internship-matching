@@ -1,32 +1,59 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { useRouter } from 'next/navigation';
-import { UploadCloud, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle, AlertCircle, Loader2, ShieldAlert } from 'lucide-react';
+import Link from 'next/link';
+import { notificationService } from '@/services/notification';
 
 export default function NewJobPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [companyApproved, setCompanyApproved] = useState<boolean | null>(null);
+  const [companyName, setCompanyName] = useState('');
+  const [checkingApproval, setCheckingApproval] = useState(true);
   
   // Form State
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState(''); // Simple text for now
+  const [content, setContent] = useState('');
   const [location, setLocation] = useState('');
   const [salary, setSalary] = useState('');
-  const [requirements, setRequirements] = useState(''); // Comma separated
+  const [requirements, setRequirements] = useState('');
   
   // File Upload State
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [fileId, setFileId] = useState<string | null>(null);
+
+  // Check if company is approved
+  useEffect(() => {
+    async function checkApproval() {
+      if (!user) return;
+      try {
+        const companyDoc = await getDoc(doc(db, 'companies', user.id));
+        if (companyDoc.exists()) {
+          setCompanyApproved(companyDoc.data().isApproved === true);
+          setCompanyName(companyDoc.data().name || '');
+        } else {
+          setCompanyApproved(false);
+        }
+      } catch (err) {
+        console.error('Error checking company approval:', err);
+        setCompanyApproved(false);
+      } finally {
+        setCheckingApproval(false);
+      }
+    }
+    checkApproval();
+  }, [user]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -37,7 +64,6 @@ export default function NewJobPage() {
       }
       setFile(selectedFile);
       
-      // Auto upload
       setUploading(true);
       setError('');
       try {
@@ -73,22 +99,34 @@ export default function NewJobPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (!companyApproved) return;
     if (!fileId && !confirm('PDF募集要項なしで登録しますか？')) return;
 
     setLoading(true);
     try {
       await addDoc(collection(db, 'jobPostings'), {
         companyId: user.id,
+        companyName: companyName,
         title,
         content,
         location,
         salary,
         requirements: requirements.split(',').map(s => s.trim()).filter(Boolean),
-        status: 'pending_approval', // Default status waiting for Admin
+        status: 'pending_approval',
         pdfFileId: fileId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+
+      // Notify Admin
+      await notificationService.createNotification(
+        'admin',
+        '新規求人投稿申請',
+        `${companyName}から「${title}」の承認申請がありました。`,
+        'system',
+        '/admin/jobs'
+      );
+
       router.push('/company/jobs');
     } catch (err) {
       console.error("Error creating job:", err);
@@ -97,6 +135,38 @@ export default function NewJobPage() {
       setLoading(false);
     }
   };
+
+  if (checkingApproval) {
+    return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-[#1E3A5F]" /></div>;
+  }
+
+  // Block unapproved companies
+  if (!companyApproved) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <Card className="p-8 text-center">
+          <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShieldAlert className="text-amber-600" size={32} />
+          </div>
+          <h1 className="text-2xl font-bold text-[#1E3A5F] mb-2">企業承認が必要です</h1>
+          <p className="text-gray-600 mb-2">
+            求人を作成するには、管理者による企業アカウントの承認が必要です。
+          </p>
+          <p className="text-sm text-gray-400 mb-6">
+            承認手続きは管理者が確認次第完了します。しばらくお待ちください。
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Link href="/company/profile">
+              <Button variant="outline">企業プロフィールを確認</Button>
+            </Link>
+            <Link href="/company/dashboard">
+              <Button variant="secondary">ダッシュボードへ</Button>
+            </Link>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -112,6 +182,10 @@ export default function NewJobPage() {
              {error}
            </div>
         )}
+
+        <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-6 text-sm text-[#1E3A5F]">
+          💡 作成した求人は管理者の承認後に公開されます。
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Input

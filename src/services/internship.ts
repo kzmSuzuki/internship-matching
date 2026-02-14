@@ -29,13 +29,33 @@ class InternshipService {
 
   async getReports(matchId: string) {
     try {
-      const q = query(
-        collection(db, 'dailyReports'),
-        where('matchId', '==', matchId),
-        orderBy('date', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DailyReport));
+      try {
+        const q = query(
+          collection(db, 'dailyReports'),
+          where('matchId', '==', matchId),
+          orderBy('date', 'desc')
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DailyReport));
+      } catch (e: any) {
+        // Fallback for missing index
+        if (e.code === 'failed-precondition' || e.message?.includes('index')) {
+           console.warn('Index missing for getReports, falling back to client-side sort');
+           const q = query(
+             collection(db, 'dailyReports'),
+             where('matchId', '==', matchId)
+           );
+           const snapshot = await getDocs(q);
+           const reports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DailyReport));
+           // Sort descending
+           return (reports as any[]).sort((a, b) => {
+              const dateA = a.date?.toMillis ? a.date.toMillis() : (a.date instanceof Date ? a.date.getTime() : 0);
+              const dateB = b.date?.toMillis ? b.date.toMillis() : (b.date instanceof Date ? b.date.getTime() : 0);
+              return dateB - dateA;
+           });
+        }
+        throw e;
+      }
     } catch (error) {
        console.error("getReports error:", error);
        throw error;

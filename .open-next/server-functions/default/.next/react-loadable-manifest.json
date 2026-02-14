@@ -1,1 +1,6 @@
-{}
+{
+  "app/(student)/student/jobs/page.tsx -> firebase/firestore": {
+    "id": 6943,
+    "files": []
+  }
+}

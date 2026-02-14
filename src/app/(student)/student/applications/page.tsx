@@ -32,8 +32,7 @@ export default function ApplicationsPage() {
       try {
         const q = query(
           collection(db, 'applications'),
-          where('studentId', '==', user.id),
-          orderBy('createdAt', 'desc')
+          where('studentId', '==', user.id)
         );
         const snapshot = await getDocs(q);
 
@@ -55,6 +54,13 @@ export default function ApplicationsPage() {
             company: companyData
           };
         }));
+
+        // Sort by createdAt desc (client-side)
+        appsWithDetails.sort((a, b) => {
+          const timeA = a.createdAt?.seconds || 0;
+          const timeB = b.createdAt?.seconds || 0;
+          return timeB - timeA;
+        });
 
         setApplications(appsWithDetails);
       } catch (error) {
@@ -122,69 +128,125 @@ export default function ApplicationsPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {applications.map((app) => (
+          {applications.map((app) => {
+            // Calculate progress for stepper
+            const steps = [
+               { id: 'pending_admin', label: '承認待ち' },
+               { id: 'pending_company', label: '企業選考' },
+               { id: 'pending_student', label: 'オファー' },
+               { id: 'matched', label: '成立' }
+            ];
+            
+            let currentStepIndex = -1;
+            if (app.status === 'pending_admin') currentStepIndex = 0;
+            if (app.status === 'pending_company') currentStepIndex = 1;
+            if (app.status === 'pending_student') currentStepIndex = 2;
+            if (app.status === 'matched' || (app.status as string) === 'completed') currentStepIndex = 3;
+            if (app.status.includes('rejected') || app.status === 'cancelled') currentStepIndex = -1; // Special case
+
+            return (
             <Card key={app.id} className="p-6">
-              <div className="flex flex-col md:flex-row justify-between gap-4">
-                <div className="space-y-2">
+              <div className="flex flex-col md:flex-row justify-between gap-6">
+                <div className="space-y-4 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-400">応募日: {app.createdAt ? format(app.createdAt.toDate(), 'yyyy/MM/dd HH:mm') : '-'}</span>
                     {getStatusBadge(app.status)}
                   </div>
                   
-                  <h3 className="text-xl font-bold text-[#1E3A5F]">
-                    {app.job.title || '求人削除済み'}
-                  </h3>
-                  
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                     <div className="flex items-center gap-1">
-                        <Building size={14} />
-                        <span>{app.company.name || '企業名不明'}</span>
-                     </div>
-                     <div className="flex items-center gap-1">
-                        <MapPin size={14} />
-                        <span>{app.job.location}</span>
+                  <div>
+                     <h3 className="text-xl font-bold text-[#1E3A5F] mb-1">
+                        {app.job.title || '求人削除済み'}
+                     </h3>
+                     <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                           <Building size={14} />
+                           <span>{app.company.name || '企業名不明'}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                           <MapPin size={14} />
+                           <span>{app.job.location}</span>
+                        </div>
                      </div>
                   </div>
+
+                     {/* Status Stepper */}
+                  {currentStepIndex >= 0 && (
+                     <div className="pt-2 pb-6 px-4">
+                        <div className="relative w-full">
+                           {/* Background Line: Starts at 12.5% (center of first col) and ends at 87.5% (center of last col) -> Width 75%, Left 12.5% */}
+                           <div className="absolute top-4 left-[12.5%] w-[75%] h-1 bg-gray-100 -translate-y-1/2 rounded-full" />
+                           {/* Active Line */}
+                           <div 
+                              className="absolute top-4 left-[12.5%] h-1 bg-indigo-600 -translate-y-1/2 rounded-full transition-all duration-500" 
+                              style={{ width: `${(currentStepIndex / (steps.length - 1)) * 75}%` }}
+                           />
+
+                           <div className="grid grid-cols-4 w-full">
+                              {steps.map((step, index) => {
+                                 const isCompleted = index <= currentStepIndex;
+                                 const isCurrent = index === currentStepIndex;
+                                 
+                                 return (
+                                    <div key={step.id} className="relative z-10 flex flex-col items-center">
+                                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                                          isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-gray-200 text-gray-400'
+                                       }`}>
+                                          {index + 1}
+                                       </div>
+                                       <span className={`absolute top-10 text-[10px] whitespace-nowrap font-medium ${isCurrent ? 'text-indigo-700' : 'text-gray-400'}`}>
+                                          {step.label}
+                                       </span>
+                                    </div>
+                                 );
+                              })}
+                           </div>
+                        </div>
+                     </div>
+                  )}
+
+                  {/* Rejection Message */}
+                  {app.status.includes('rejected') && (
+                     <div className="bg-red-50 p-3 rounded-lg text-sm text-red-600 flex items-start gap-2">
+                        <div className="mt-0.5">⚠️</div>
+                        <div>
+                           <p className="font-bold">不採用となりました</p>
+                           <p className="text-xs opacity-80 mt-1">
+                              残念ながら今回はご縁がありませんでした。他の求人も探してみましょう。
+                           </p>
+                        </div>
+                     </div>
+                  )}
                 </div>
 
-                <div className="flex items-center">
+                <div className="flex flex-col items-end gap-3 min-w-[140px]">
                   <Link href={`/student/jobs/${app.jobId}`}>
-                    <Button variant="outline" size="sm">
-                       求人詳細を見る
+                    <Button variant="outline" size="sm" className="w-full">
+                       求人詳細
                     </Button>
                   </Link>
+
+                  {app.status === 'pending_student' && (
+                     <Button 
+                        variant="primary" 
+                        className="bg-[#48BB78] hover:bg-[#48BB78]/90 w-full shadow-lg shadow-green-200"
+                        onClick={() => handleAcceptMatch(app.id)}
+                     >
+                        オファーを承諾
+                     </Button>
+                  )}
+               
+                  {(app.status === 'matched' || (app.status as string) === 'completed') && app.matchId && (
+                     <Link href={`/student/intern/${app.matchId}`} className="w-full"> 
+                        <Button className="bg-[#1E3A5F] w-full">
+                           インターン画面へ
+                        </Button>
+                     </Link>
+                  )}
                 </div>
               </div>
-
-              {app.status === 'pending_student' && (
-                 <div className="mt-4 bg-[#48BB78]/10 p-4 rounded-lg flex justify-between items-center">
-                    <p className="text-[#2F855A] font-medium text-sm">
-                       企業からマッチングのオファーが届いています！承認してインターンを開始しましょう。
-                    </p>
-                     <Button 
-                       variant="primary" 
-                       className="bg-[#48BB78] hover:bg-[#48BB78]/90"
-                       onClick={() => handleAcceptMatch(app.id)}
-                    >
-                       マッチングを承認する
-                    </Button>
-                 </div>
-              )}
-              
-              {(app.status === 'matched' || ((app.status as string) === 'completed')) && app.matchId && (
-                 <div className="mt-4 bg-[#1E3A5F]/5 p-4 rounded-lg flex justify-between items-center">
-                    <p className="text-[#1E3A5F] font-medium text-sm">
-                       インターンシップが進行中(または完了)です。日報や評価を確認しましょう。
-                    </p>
-                    <Link href={`/student/intern/${app.matchId}`}> 
-                       <Button className="bg-[#1E3A5F]">
-                          インターンシップ画面へ
-                       </Button>
-                    </Link>
-                 </div>
-              )}
             </Card>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>

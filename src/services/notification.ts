@@ -1,6 +1,6 @@
 import { db } from '@/lib/firebase';
 import { 
-  collection, doc, updateDoc, query, where, orderBy, onSnapshot, limit, serverTimestamp, writeBatch, getDocs 
+  collection, doc, updateDoc, query, where, orderBy, onSnapshot, limit, serverTimestamp, writeBatch, getDocs, addDoc  
 } from 'firebase/firestore';
 import { Notification } from '@/types';
 import { useState, useEffect } from 'react';
@@ -31,11 +31,26 @@ class NotificationService {
     
     await batch.commit();
   }
+  async createNotification(recipientId: string, title: string, message: string, type: string, link?: string) {
+    try {
+      await addDoc(collection(db, 'notifications'), {
+        userId: recipientId,
+        title,
+        message,
+        type,
+        link,
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+    } catch (e) {
+      console.error("Error creating notification:", e);
+    }
+  }
 }
 
 export const notificationService = new NotificationService();
 
-export function useNotifications(userId: string | undefined) {
+export function useNotifications(userId: string | undefined, role?: string) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -48,24 +63,36 @@ export function useNotifications(userId: string | undefined) {
        return;
     }
 
-    const q = query(
-      collection(db, 'notifications'),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
-      limit(20) // Limit to recent 20
-    );
+    let q;
+    // If admin, fetch personal notifications AND 'admin' role notifications
+    if (role === 'admin') {
+      q = query(
+        collection(db, 'notifications'),
+        where('userId', 'in', [userId, 'admin']),
+        orderBy('createdAt', 'desc'),
+        limit(20)
+      );
+    } else {
+      q = query(
+        collection(db, 'notifications'),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc'),
+        limit(20)
+      );
+    }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
       setNotifications(msgs);
-      setUnreadCount(msgs.filter(m => !m.read).length); // Count unread in FETCHED set (simplified)
-      // Note: Real unread count might need a separate count query if we limit fetched items, 
-      // but for this scale, client-side count of recent items is acceptable or '9+' style.
+      setUnreadCount(msgs.filter(m => !m.read).length); 
       setLoading(false);
+    }, (error) => {
+       console.error("Notification listener error:", error);
+       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [userId]);
+  }, [userId, role]);
 
   return { notifications, unreadCount, loading };
 }
