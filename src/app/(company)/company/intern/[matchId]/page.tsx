@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Loader2, Calendar as CalendarIcon, CheckCircle, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
+import { InternshipEvaluation } from '@/components/internship/InternshipEvaluation';
 
 export default function CompanyInternshipPage({ params }: { params: { matchId: string } }) {
   const { matchId } = params;
@@ -240,65 +241,28 @@ export default function CompanyInternshipPage({ params }: { params: { matchId: s
           {/* Sidebar: Evaluation or Status */}
           <div className="space-y-6">
              {match.status === 'completed' && (
-                <Card className="p-6">
-                   <h2 className="text-lg font-bold mb-4 text-[#1E3A5F]">学生評価</h2>
-                   {evaluation ? (
-                      <div className="space-y-4">
-                         <div className="bg-[#48BB78]/10 text-center py-4 rounded-lg">
-                            <span className="block text-xs text-gray-500">評価完了</span>
-                            <span className="text-2xl font-bold text-[#2F855A]">送信済み</span>
-                         </div>
-                         <div>
-                            <label className="text-xs text-gray-400">スコア</label>
-                            <div className="flex text-yellow-500">
-                               {[...Array(5)].map((_, i) => (
-                                  <span key={i} className={i < evaluation.score ? 'text-yellow-500' : 'text-gray-300'}>★</span>
-                               ))}
-                            </div>
-                         </div>
-                         <div>
-                           <label className="text-xs text-gray-400">コメント</label>
-                           <p className="text-sm">{evaluation.comment}</p>
-                         </div>
-                      </div>
-                   ) : (
-                      <form onSubmit={handleSubmitEvaluation} className="space-y-4">
-                         <p className="text-sm text-gray-600">
-                            インターンシップが終了しました。
-                            学生への最終評価を入力してください。
-                         </p>
-                         <div>
-                            <label className="block text-sm font-medium mb-1">評価スコア (1-5)</label>
-                            <select 
-                               className="w-full border rounded p-2"
-                               value={evalScore}
-                               onChange={e => setEvalScore(Number(e.target.value))}
-                               required
-                            >
-                               <option value="0">選択してください</option>
-                               <option value="5">5 - 非常に優秀</option>
-                               <option value="4">4 - 優秀</option>
-                               <option value="3">3 - 標準的</option>
-                               <option value="2">2 - 改善の余地あり</option>
-                               <option value="1">1 - 期待を下回る</option>
-                            </select>
-                         </div>
-                         <div>
-                            <label className="block text-sm font-medium mb-1">コメント</label>
-                            <textarea
-                               className="w-full border rounded p-2 min-h-[100px]"
-                               value={evalComment}
-                               onChange={e => setEvalComment(e.target.value)}
-                               required
-                               placeholder="学生へのフィードバックや応援メッセージ..."
-                            />
-                         </div>
-                         <Button type="submit" className="w-full" isLoading={submittingEval} disabled={evalScore === 0}>
-                            評価を送信する
-                         </Button>
-                      </form>
-                   )}
-                </Card>
+                <InternshipEvaluation
+                  evaluation={evaluation}
+                  onSubmit={async (score, comment) => {
+                    if (!user || !match || !student) return;
+                    if (!confirm('評価を送信しますか？送信後は変更できません。')) return;
+
+                    setSubmittingEval(true);
+                    try {
+                       await internshipService.submitEvaluation(match.id, user.id, student.userId, score, comment);
+                       const evalData = await internshipService.getEvaluation(match.id, user.id);
+                       setEvaluation(evalData);
+                    } catch (error) {
+                       console.error(error);
+                       alert('評価の送信に失敗しました');
+                    } finally {
+                       setSubmittingEval(false);
+                    }
+                  }}
+                  isSubmitting={submittingEval}
+                  userRole="company"
+                  targetName={student?.name || '学生'}
+                />
              )}
           </div>
        </div>

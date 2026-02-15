@@ -4,9 +4,22 @@ import {
 } from 'firebase/firestore';
 import { JobPosting, Application, User, Company } from '@/types';
 import { notificationService } from './notification';
+import { sendEmail } from '@/lib/sendEmail';
 
 class AdminService {
   
+  private async getUserEmail(userId: string): Promise<string | null> {
+    try {
+      const userSnap = await getDoc(doc(db, 'users', userId));
+      if (userSnap.exists()) {
+        return userSnap.data().email;
+      }
+    } catch (e) {
+      console.error('Error fetching user email:', e);
+    }
+    return null;
+  }
+
   // --- Stats ---
   async getStats() {
     try {
@@ -105,6 +118,16 @@ class AdminService {
         'job_approved_admin',
         `/company/jobs/${jobId}`
       );
+
+      // Send Email
+      const companyEmail = await this.getUserEmail(jobData.companyId);
+      if (companyEmail) {
+        await sendEmail(
+          companyEmail,
+          '【Internship Match】求人公開のお知らせ',
+          `求人「${jobData.title}」が承認され、公開されました。\n\nマイページから確認できます。`
+        );
+      }
     }
   }
 
@@ -129,6 +152,16 @@ class AdminService {
         'system',
         `/company/jobs/${jobId}`
       );
+
+      // Send Email
+      const companyEmail = await this.getUserEmail(jobData.companyId);
+      if (companyEmail) {
+        await sendEmail(
+          companyEmail,
+          '【Internship Match】求人差し戻しのお知らせ',
+          `求人「${jobData.title}」が差し戻されました。\n理由を確認し、内容を修正してください。`
+        );
+      }
     }
   }
 
@@ -152,6 +185,16 @@ class AdminService {
       'system',
       '/company/dashboard'
     );
+
+    // Send Email
+    const email = await this.getUserEmail(userId);
+    if (email) {
+      await sendEmail(
+        email,
+        '【Internship Match】企業アカウント承認のお知らせ',
+        `アカウント審査が完了しました。\n本日より求人の作成が可能になります。\n\nダッシュボードにログインしてご利用を開始してください。`
+      );
+    }
   }
 
   async revokeCompany(userId: string) {

@@ -45,7 +45,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
     url.searchParams.append('apiKey', GAS_API_KEY);
     url.searchParams.append('fileId', fileId);
     
-    console.log(`[PDF Fetch] Requesting fileId=${fileId}`);
+    // console.log(`[PDF Fetch] Requesting fileId=${fileId}`);
 
     const response = await fetch(url.toString(), { 
         redirect: 'follow',
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
     try {
       result = JSON.parse(responseText);
     } catch {
-      console.error('[PDF Fetch] Failed to parse GAS response:', responseText.substring(0, 200));
+      console.error('[PDF Fetch] Failed to parse GAS response');
       return NextResponse.json({ error: 'Invalid GAS response' }, { status: 500 });
     }
     
@@ -79,7 +79,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
         const base64Clean = result.data.replace(/[\r\n\s]/g, '');
         const binaryString = atob(base64Clean);
         const len = binaryString.length;
-        console.log(`[PDF Fetch] Success. Data length: ${len}`);
         
         const bytes = new Uint8Array(len);
         for (let i = 0; i < len; i++) {
@@ -97,7 +96,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
 
     return NextResponse.json({ error: 'No data found' }, { status: 404 });
   } catch (error: any) {
-    console.error('[PDF Fetch] Error:', error);
+    console.error('[PDF Fetch] Error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

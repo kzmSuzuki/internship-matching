@@ -19,8 +19,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   
-  // Debug log
-  console.log('Sidebar user role:', user?.role);
+  // Debug log removed
+  // console.log('Sidebar user role:', user?.role);
 
   const getMenuItems = (): MenuItem[] => {
     if (!user) return [];
@@ -65,7 +65,7 @@ export function Sidebar() {
         <div className="w-8 h-8 rounded-full bg-[#161B33]" />
       </div>
 
-      <nav className="flex-1 flex flex-col gap-4 w-full px-2">
+      <nav className="flex-1 flex flex-col gap-4 w-full items-center px-2">
         {menuItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (

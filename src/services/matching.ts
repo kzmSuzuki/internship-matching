@@ -4,9 +4,22 @@ import {
   Timestamp, addDoc, updateDoc, getDoc, query, where, getDocs 
 } from 'firebase/firestore';
 import { Application, JobPosting, Match, NotificationType, Student, Company } from '@/types';
+import { sendEmail } from '@/lib/sendEmail';
 
 class MatchingService {
   
+  private async getUserEmail(userId: string): Promise<string | null> {
+    try {
+      const userSnap = await getDoc(doc(db, 'users', userId));
+      if (userSnap.exists()) {
+        return userSnap.data().email;
+      }
+    } catch (e) {
+      console.error('Error fetching user email:', e);
+    }
+    return null;
+  }
+
   // --- Student Actions ---
 
   /**
@@ -24,12 +37,6 @@ class MatchingService {
             where('status', 'in', ['pending_admin', 'pending_company', 'pending_student', 'matched'])
         );
         const activeApps = await getDocs(q); 
-        // Note: Transactional query support is limited, but for "one active app" constraint validation,
-        // we might ideally read a user flag or similar. For now, we trust the rule/check logic.
-        // Or we use a `studentState` document. 
-        // Firestore transactions require reads before writes on the *same* documents. 
-        // Validating uniqueness via query "inside" transaction is tricky if documents don't exist yet.
-        // We will proceed with optimized check.
         
         if (!activeApps.empty) {
            throw new Error('Already have an active application');
@@ -49,9 +56,7 @@ class MatchingService {
           updatedAt: serverTimestamp(),
         };
 
-        // Create Notification for Admin (Simulated by adding to specific admin user or a generic 'admins' collection)
-        // For simplicity in this demo, we can skip actual admin notification doc creation 
-        // or create a doc in 'notifications' with userId='admin'.
+        // Create Notification for Admin
         const notifRef = doc(collection(db, 'notifications'));
         const notifData = {
           userId: 'admin', // Placeholder for admin group
@@ -68,6 +73,17 @@ class MatchingService {
 
         return newAppRef.id;
       });
+
+      // Send Email to Student
+      const studentEmail = await this.getUserEmail(studentId);
+      if (studentEmail) {
+        await sendEmail(
+          studentEmail,
+          '【Internship Match】応募完了のお知らせ',
+          `求人への応募が完了しました。\n\n管理者の確認をお待ちください。\n求人ID: ${jobId}`
+        );
+      }
+
       return result;
     } catch (error) {
       console.error("MatchingService.applyJob error:", error);
@@ -124,6 +140,27 @@ class MatchingService {
         createdAt: serverTimestamp(),
       });
     });
+
+    // Send Email to Company
+    // Only get appData here after transaction if we need it, but we can't easily extract it from transaction block.
+    // So we fetch it again or accept slight overhead.
+    // For simplicity, we fetch just enough to simulate.
+    try {
+        const appSnap = await getDoc(doc(db, 'applications', applicationId));
+        if (appSnap.exists()) {
+            const data = appSnap.data() as Application;
+            const companyEmail = await this.getUserEmail(data.companyId);
+            if (companyEmail) {
+                await sendEmail(
+                    companyEmail,
+                    '【Internship Match】マッチング成立のお知らせ',
+                    `学生がオファーを承諾しました！\n\nマイページから詳細を確認してください。`
+                );
+            }
+        }
+    } catch (e) {
+        console.error('Email send failed:', e);
+    }
   }
 
   // --- Company Actions ---
@@ -161,6 +198,24 @@ class MatchingService {
         createdAt: serverTimestamp(),
       });
     });
+
+    // Send Email to Student
+    try {
+        const appSnap = await getDoc(doc(db, 'applications', applicationId));
+        if (appSnap.exists()) {
+            const data = appSnap.data() as Application;
+            const studentEmail = await this.getUserEmail(data.studentId);
+            if (studentEmail) {
+                await sendEmail(
+                    studentEmail,
+                    '【Internship Match】オファー受信のお知らせ',
+                    `企業からオファーが届きました！\n\nマイページから確認・承諾を行ってください。`
+                );
+            }
+        }
+    } catch (e) {
+        console.error('Email send failed:', e);
+    }
   }
 
   /**
@@ -194,6 +249,24 @@ class MatchingService {
         createdAt: serverTimestamp(),
       });
     });
+
+    // Send Email to Student
+    try {
+        const appSnap = await getDoc(doc(db, 'applications', applicationId));
+        if (appSnap.exists()) {
+            const data = appSnap.data() as Application;
+            const studentEmail = await this.getUserEmail(data.studentId);
+            if (studentEmail) {
+                await sendEmail(
+                    studentEmail,
+                    '【Internship Match】選考結果のお知らせ',
+                    `残念ながら、今回の応募は見送られました。\nまたの応募をお待ちしております。`
+                );
+            }
+        }
+    } catch (e) {
+        console.error('Email send failed:', e);
+    }
   }
 
 
@@ -229,6 +302,24 @@ class MatchingService {
         createdAt: serverTimestamp(),
       });
     });
+
+    // Send Email to Company
+    try {
+        const appSnap = await getDoc(doc(db, 'applications', applicationId));
+        if (appSnap.exists()) {
+            const data = appSnap.data() as Application;
+            const companyEmail = await this.getUserEmail(data.companyId);
+            if (companyEmail) {
+                await sendEmail(
+                    companyEmail,
+                    '【Internship Match】新規応募のお知らせ',
+                    `新しい応募が届きました（管理者承認済み）。\n\nマイページから応募者を確認してください。`
+                );
+            }
+        }
+    } catch (e) {
+        console.error('Email send failed:', e);
+    }
   }
 }
 

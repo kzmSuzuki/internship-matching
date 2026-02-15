@@ -37,15 +37,6 @@ export async function POST(req: NextRequest) {
     }
     const base64 = btoa(binary);
 
-    // Verify config loaded
-    console.log(`[PDF Upload] GAS_API_URL configured: ${!!GAS_API_URL}`);
-    console.log(`[PDF Upload] GAS_API_KEY configured: ${!!GAS_API_KEY}`);
-    if (GAS_API_KEY) {
-       console.log(`[PDF Upload] GAS_API_KEY (first 3 chars): ${GAS_API_KEY.substring(0, 3)}***`);
-    } else {
-       console.error('[PDF Upload] GAS_API_KEY is missing or empty!');
-    }
-
     const payload = {
       apiKey: GAS_API_KEY,
       fileName: file.name,
@@ -53,13 +44,6 @@ export async function POST(req: NextRequest) {
       fileData: base64,
     };
 
-    console.log(`[PDF Upload] Payload prepared. apiKey included: ${!!payload.apiKey}`);
-    if (payload.apiKey) {
-        console.log(`[PDF Upload] Payload apiKey matches env var: ${payload.apiKey === GAS_API_KEY}`);
-    }
-
-    console.log(`[PDF Upload] Sending to GAS URL: ${GAS_API_URL}`);
-    
     // First request with no redirect follow to check initial status
     let response = await fetch(GAS_API_URL, {
       method: 'POST',
@@ -70,32 +54,27 @@ export async function POST(req: NextRequest) {
       redirect: 'manual', 
     });
 
-    console.log(`[PDF Upload] Initial GAS Response status: ${response.status}`);
-
     if (response.status === 302) {
       const location = response.headers.get('location');
-      console.log(`[PDF Upload] Redirect Location: ${location}`);
       if (location) {
         // Follow redirect with GET
         response = await fetch(location);
-        console.log(`[PDF Upload] Followed Response status: ${response.status}`);
       }
     } else if (response.status === 401 || response.status === 403) {
-       console.error('[PDF Upload] GAS Auth Error. Check deployment ("Anyone" access required).');
+       console.error('[PDF Upload] GAS Auth Error.');
        return NextResponse.json({ 
-         error: 'GASへのアクセス権限がありません。デプロイ設定で「アクセスできるユーザー：全員」になっているか、URLが正しいか確認してください（組織ドメインが含まれていると外部からアクセスできない場合があります）。' 
+         error: 'GASへのアクセス権限がありません。デプロイ設定を確認してください。' 
        }, { status: 500 });
     }
 
     // Read response text
     const responseText = await response.text();
-    console.log(`[PDF Upload] GAS Response body (first 200 chars): ${responseText.substring(0, 200)}`);
 
     // Check if response is HTML (GAS error page or login redirect that returned 200)
     if (responseText.trim().toLowerCase().startsWith('<!doctype') || responseText.trim().toLowerCase().startsWith('<html')) {
       console.error('[PDF Upload] GAS returned HTML instead of JSON.');
       return NextResponse.json({ 
-        error: 'GAS APIがHTML（ログイン画面など）を返しました。デプロイ設定（アクセス権限）またはURLを確認してください。' 
+        error: 'GAS APIがHTMLを返しました。設定を確認してください。' 
       }, { status: 500 });
     }
 
@@ -104,7 +83,7 @@ export async function POST(req: NextRequest) {
     try {
       result = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('[PDF Upload] Failed to parse GAS response as JSON:', responseText.substring(0, 200));
+      console.error('[PDF Upload] Failed to parse GAS response as JSON');
       return NextResponse.json({ 
         error: 'GAS APIのレスポンスをパースできませんでした' 
       }, { status: 500 });
@@ -116,14 +95,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (!result.fileId) {
-      console.error('[PDF Upload] GAS response missing fileId:', result);
+      console.error('[PDF Upload] GAS response missing fileId');
       return NextResponse.json({ error: 'GAS APIからfileIdが返されませんでした' }, { status: 500 });
     }
 
-    console.log(`[PDF Upload] Success: fileId=${result.fileId}`);
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error('[PDF Upload] Error:', error);
+    console.error('[PDF Upload] Error:', error.message);
     return NextResponse.json({ 
       error: `PDFアップロードエラー: ${error.message}` 
     }, { status: 500 });

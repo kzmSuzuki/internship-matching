@@ -48,6 +48,8 @@ export function NotificationBell() {
 
   if (!user) return null;
 
+  // console.log('NotificationBell Render:', { count: notifications.length, unread: unreadCount });
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button 

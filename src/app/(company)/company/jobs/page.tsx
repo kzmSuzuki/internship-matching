@@ -68,7 +68,6 @@ export default function CompanyJobListPage() {
   const handleDelete = async (jobId: string) => {
     if (!window.confirm('この求人を削除してもよろしいですか？取り消せません。')) return;
     try {
-      console.log('Deleting job:', jobId);
       await deleteDoc(doc(db, 'jobPostings', jobId));
       setJobs(prev => prev.filter(job => job.id !== jobId));
     } catch (error: any) {
@@ -76,7 +75,6 @@ export default function CompanyJobListPage() {
       
       // Fallback to soft delete if permission denied (or other error)
       try {
-         console.log('Attempting soft delete for:', jobId);
          await updateDoc(doc(db, 'jobPostings', jobId), { isDeleted: true });
          setJobs(prev => prev.filter(job => job.id !== jobId));
          return;

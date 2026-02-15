@@ -25,6 +25,7 @@ export default function EditJobPage() {
   const [location, setLocation] = useState('');
   const [salary, setSalary] = useState('');
   const [requirements, setRequirements] = useState('');
+  const [status, setStatus] = useState<string>('');
   
   // File Upload State
   const [file, setFile] = useState<File | null>(null);
@@ -52,6 +53,7 @@ export default function EditJobPage() {
         setLocation(data.location || '');
         setSalary(data.salary || '');
         setRequirements(data.requirements?.join(', ') || '');
+        setStatus(data.status || '');
         setFileId(data.pdfFileId || null);
         
         // existingFileName? We don't store filename in jobPosting usually, but mostly just ID.
@@ -119,6 +121,9 @@ export default function EditJobPage() {
 
     setSubmitting(true);
     try {
+      // If currently draft (rejected/new), update to pending_approval to resubmit
+      const newStatus = status === 'draft' ? 'pending_approval' : status;
+
       await updateDoc(doc(db, 'jobPostings', id), {
         title,
         content,
@@ -126,6 +131,7 @@ export default function EditJobPage() {
         salary,
         requirements: requirements.split(',').map(s => s.trim()).filter(Boolean),
         pdfFileId: fileId,
+        status: newStatus,
         updatedAt: serverTimestamp(),
       });
 
@@ -263,7 +269,7 @@ export default function EditJobPage() {
               キャンセル
             </Button>
             <Button type="submit" isLoading={submitting || uploading} disabled={uploading}>
-              更新する
+              {status === 'draft' ? '更新して再申請' : '更新する'}
             </Button>
           </div>
         </form>

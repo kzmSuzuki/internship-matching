@@ -92,7 +92,7 @@ export default function CompanyApplicantsPage() {
   const openStatusModal = (app: ApplicationWithProfile, action: 'offer' | 'reject') => {
      setConfirmModal({ appId: app.id, action });
      if (action === 'offer') {
-        setMessage('ぜひ一度、面談の機会をいただけますでしょうか。\nご都合の良い日時をいくつか候補として挙げていただけますと幸いです。');
+        setMessage('ぜひ、よろしくお願いします。\n');
      } else {
         setMessage('誠に残念ながら、今回はご縁がありませんでした。\n今後のご活躍をお祈り申し上げます。');
      }

@@ -206,7 +206,6 @@ function GuestLanding() {
       <section className="text-center space-y-6 py-12">
         <Badge variant="outline" className="mb-4">神山まるごと高専生専用</Badge>
         <h1 className="text-4xl md:text-5xl font-bold text-[#1E3A5F] leading-tight">
-          未来をつくる<br />
           インターンシップ・マッチング
         </h1>
         <p className="text-gray-600 max-w-2xl mx-auto text-lg">
@@ -222,7 +221,7 @@ function GuestLanding() {
           </div>
           <h3 className="text-xl font-bold mb-2">学生の方へ</h3>
           <p className="text-gray-500 text-sm mb-4">
-            自分のスキルや興味に合った長期インターンを探し、
+            自分のスキルや興味に合ったインターンを探し、
             実際のプロジェクトで経験を積みましょう。
           </p>
           <Button variant="ghost" size="sm" className="text-[#1E3A5F]">
@@ -236,7 +235,7 @@ function GuestLanding() {
           </div>
           <h3 className="text-xl font-bold mb-2">企業の方へ</h3>
           <p className="text-gray-500 text-sm mb-4">
-            熱意ある学生と出会い、共にプロジェクトを進めることができます。
+            学生の成長につながる、インターンプロジェクトを募集しております。
             招待制で安心して利用可能です。
           </p>
           <Button variant="ghost" size="sm" className="text-[#1E3A5F]">

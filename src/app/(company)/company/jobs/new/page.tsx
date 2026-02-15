@@ -219,7 +219,7 @@ export default function NewJobPage() {
              <Input
                 value={requirements}
                 onChange={(e) => setRequirements(e.target.value)}
-                placeholder="React, TypeScript, AWS"
+                placeholder="React, TypeScript, Photoshop, Illustrator"
              />
           </div>
 
