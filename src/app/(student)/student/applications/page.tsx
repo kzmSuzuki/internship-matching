@@ -157,7 +157,7 @@ export default function ApplicationsPage() {
                      <h3 className="text-xl font-bold text-[#1E3A5F] mb-1">
                         {app.job.title || '求人削除済み'}
                      </h3>
-                     <div className="flex items-center gap-4 text-sm text-gray-600">
+                     <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
                         <div className="flex items-center gap-1">
                            <Building size={14} />
                            <span>{app.company.name || '企業名不明'}</span>
@@ -167,6 +167,12 @@ export default function ApplicationsPage() {
                            <span>{app.job.location}</span>
                         </div>
                      </div>
+                     {app.interviewDate && (
+                        <div className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md text-xs font-bold border border-blue-200 shadow-sm mt-1">
+                           <Calendar size={14} />
+                           面談予定: {app.interviewDate.replace('T', ' ')}
+                        </div>
+                     )}
                   </div>
 
                      {/* Status Stepper */}

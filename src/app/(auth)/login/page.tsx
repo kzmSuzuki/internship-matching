@@ -16,7 +16,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showCompanyLogin, setShowCompanyLogin] = useState(false);
   const router = useRouter();
 
   const handleGoogleLogin = async () => {
@@ -111,7 +110,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {error && !showCompanyLogin && (
+          {error && (
             <div className="bg-[#F56565]/10 text-[#F56565] p-3 rounded-lg text-sm mb-4">
               {error}
             </div>
@@ -121,7 +120,7 @@ export default function LoginPage() {
             type="button"
             className="w-full h-12 text-base gap-3"
             onClick={handleGoogleLogin}
-            isLoading={loading && !showCompanyLogin}
+            isLoading={loading}
           >
             <svg viewBox="0 0 24 24" width="20" height="20">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
@@ -139,62 +138,43 @@ export default function LoginPage() {
 
         {/* Company Login (Secondary) */}
         <Card className="p-6">
-          <button
-            onClick={() => setShowCompanyLogin(!showCompanyLogin)}
-            className="w-full flex items-center justify-between text-left"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <Building2 className="text-indigo-700" size={20} />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-gray-700">企業の方はこちら</h2>
-                <p className="text-xs text-gray-400">メールアドレスでログイン</p>
-              </div>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <Building2 className="text-indigo-700" size={20} />
             </div>
-            <ChevronDown
-              size={18}
-              className={`text-gray-400 transition-transform duration-200 ${showCompanyLogin ? 'rotate-180' : ''}`}
+            <div>
+              <h2 className="text-sm font-bold text-gray-700">企業の方はこちら</h2>
+              <p className="text-xs text-gray-400">メールアドレスでログイン</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleCompanyLogin} className="space-y-4">
+            <Input
+              label="メールアドレス"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="info@company.co.jp"
             />
-          </button>
+            <Input
+              label="パスワード"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <Button type="submit" className="w-full" isLoading={loading}>
+              ログイン
+            </Button>
+          </form>
 
-          {showCompanyLogin && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              {error && showCompanyLogin && (
-                <div className="bg-[#F56565]/10 text-[#F56565] p-3 rounded-lg text-sm mb-4">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleCompanyLogin} className="space-y-4">
-                <Input
-                  label="メールアドレス"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="info@company.co.jp"
-                />
-                <Input
-                  label="パスワード"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <Button type="submit" className="w-full" isLoading={loading && showCompanyLogin}>
-                  ログイン
-                </Button>
-              </form>
-
-              <p className="mt-4 text-center text-sm text-gray-600">
-                企業アカウントをお持ちでないですか？{' '}
-                <Link href="/register/company" className="text-indigo-600 font-medium hover:underline">
-                  企業登録はこちら
-                </Link>
-              </p>
-            </div>
-          )}
+          <p className="mt-4 text-center text-sm text-gray-600">
+            企業アカウントをお持ちでないですか？{' '}
+            <Link href="/register/company" className="text-indigo-600 font-medium hover:underline">
+              企業登録はこちら
+            </Link>
+          </p>
         </Card>
       </div>
     </div>

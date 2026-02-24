@@ -92,6 +92,9 @@ export default function CompanyProfilePage() {
       <div>
         <h1 className="text-2xl font-bold text-[#1E3A5F]">企業プロフィール編集</h1>
         <p className="text-gray-500">学生に公開される企業情報を入力してください</p>
+        <p className="text-sm text-gray-500 mt-2">
+          承認されてから、求人を作成ください。<br/>問題がある場合は<a href="mailto:internship@kamiyama.ac.jp" className="underline">internship@kamiyama.ac.jp</a>に連絡をお願いします。
+        </p>
       </div>
 
       <Card className="p-8">

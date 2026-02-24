@@ -23,10 +23,35 @@ export default function NewJobPage() {
   
   // Form State
   const [title, setTitle] = useState('');
+  const [location, setLocation] = useState(''); // Compatibility for existing list
+  const [department, setDepartment] = useState('');
+  const [nearestStation, setNearestStation] = useState('');
+  const [periodStart, setPeriodStart] = useState('');
+  const [periodEnd, setPeriodEnd] = useState('');
+  const [estimatedDaysTime, setEstimatedDaysTime] = useState('');
+  const [minCapacity, setMinCapacity] = useState('');
+  const [maxCapacity, setMaxCapacity] = useState('');
+  const [workFormat, setWorkFormat] = useState('対面');
+  const [workFormatComment, setWorkFormatComment] = useState('');
+  
+  const [occupation, setOccupation] = useState('エンジニア');
+  const [occupationComment, setOccupationComment] = useState('');
   const [content, setContent] = useState('');
-  const [location, setLocation] = useState('');
-  const [salary, setSalary] = useState('');
+  const [mentorSystem, setMentorSystem] = useState('');
+  const [expectedOutput, setExpectedOutput] = useState('');
+  
   const [requirements, setRequirements] = useState('');
+  const [tools, setTools] = useState('');
+  const [niceToHave, setNiceToHave] = useState('');
+  
+  const [isPaidStr, setIsPaidStr] = useState('無償');
+  const [salary, setSalary] = useState('');
+  const [hasTransportation, setHasTransportation] = useState(false);
+  const [hasAccommodation, setHasAccommodation] = useState(false);
+  const [belongings, setBelongings] = useState('');
+  const [dressCode, setDressCode] = useState('');
+  
+  const [otherNotes, setOtherNotes] = useState('');
   
   // File Upload State
   const [file, setFile] = useState<File | null>(null);
@@ -100,18 +125,40 @@ export default function NewJobPage() {
     e.preventDefault();
     if (!user) return;
     if (!companyApproved) return;
-    if (!fileId && !confirm('PDF募集要項なしで登録しますか？')) return;
+    if (!fileId && !confirm('添付資料なしで登録しますか？')) return;
 
     setLoading(true);
     try {
+      const isPaid = isPaidStr === '有償';
       await addDoc(collection(db, 'jobPostings'), {
         companyId: user.id,
         companyName: companyName,
         title,
-        content,
         location,
-        salary,
+        department,
+        nearestStation,
+        periodStart,
+        periodEnd,
+        estimatedDaysTime,
+        minCapacity,
+        maxCapacity,
+        workFormat,
+        workFormatComment,
+        occupation,
+        occupationComment,
+        content,
+        mentorSystem,
+        expectedOutput,
         requirements: requirements.split(',').map(s => s.trim()).filter(Boolean),
+        tools,
+        niceToHave,
+        isPaid,
+        salary,
+        hasTransportation,
+        hasAccommodation,
+        belongings,
+        dressCode,
+        otherNotes,
         status: 'pending_approval',
         pdfFileId: fileId,
         createdAt: serverTimestamp(),
@@ -187,58 +234,159 @@ export default function NewJobPage() {
           💡 作成した求人は管理者の承認後に公開されます。
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Input
-            label="求人タイトル"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            placeholder="2026年夏インターンシップ (エンジニア職)"
-          />
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* 基本情報 */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-[#1E3A5F] border-b pb-2">基本情報</h2>
+            <Input label="求人タイトル" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="2026年夏インターンシップ" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="部署・チーム名" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="開発部" />
+              <Input label="就業場所 (都道府県・市区町村)" value={location} onChange={(e) => setLocation(e.target.value)} required placeholder="東京都渋谷区" />
+            </div>
+            <Input label="最寄駅・バス停" value={nearestStation} onChange={(e) => setNearestStation(e.target.value)} placeholder="渋谷駅 徒歩5分" />
+            
+            <div>
+              <label className="block text-sm font-medium text-[#1A202C] mb-1.5">実施期間</label>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <Input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} placeholder="YYYY/MM/DD" />
+                <span className="hidden sm:inline text-gray-500">〜</span>
+                <Input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} placeholder="YYYY/MM/DD" />
+              </div>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <Input
-                label="勤務地"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                required
-                placeholder="東京 / リモート"
-              />
-              <Input
-                label="給与/待遇"
-                value={salary}
-                onChange={(e) => setSalary(e.target.value)}
-                placeholder="時給 1,500円 ~"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="想定日数・時間" value={estimatedDaysTime} onChange={(e) => setEstimatedDaysTime(e.target.value)} placeholder="平日のうち3日以上、9時～17時など" />
+              <div className="flex items-end gap-2">
+                <Input label="受入人数（目安）" value={minCapacity} onChange={(e) => setMinCapacity(e.target.value)} placeholder="1" />
+                <span className="pb-3 text-sm text-gray-600 whitespace-nowrap">名 〜</span>
+                <Input label="" value={maxCapacity} onChange={(e) => setMaxCapacity(e.target.value)} placeholder="3" />
+                <span className="pb-3 text-sm text-gray-600 whitespace-nowrap">名</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[#1A202C] mb-1.5">実施形態</label>
+                <select 
+                  className="w-full rounded-lg border border-gray-200 bg-white/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3A5F]"
+                  value={workFormat} onChange={(e) => setWorkFormat(e.target.value)}
+                >
+                  <option value="対面">対面</option>
+                  <option value="ハイブリッド">ハイブリッド</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
+              {workFormat === 'その他' && (
+                <Input label="実施形態（その他）" value={workFormatComment} onChange={(e) => setWorkFormatComment(e.target.value)} placeholder="詳細をご記入ください" />
+              )}
+            </div>
           </div>
 
-          <div>
-             <label className="block text-sm font-medium text-[#1A202C] mb-1.5">
-               応募要件 / スキル (カンマ区切り)
-             </label>
-             <Input
-                value={requirements}
-                onChange={(e) => setRequirements(e.target.value)}
-                placeholder="React, TypeScript, Photoshop, Illustrator"
-             />
+          {/* 求人内容 */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-[#1E3A5F] border-b pb-2">求人内容</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[#1A202C] mb-1.5">職種</label>
+                <select 
+                  className="w-full rounded-lg border border-gray-200 bg-white/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3A5F]"
+                  value={occupation} onChange={(e) => setOccupation(e.target.value)}
+                >
+                  <option value="エンジニア">エンジニア</option>
+                  <option value="デザイナー">デザイナー</option>
+                  <option value="事業企画">事業企画</option>
+                  <option value="営業">営業</option>
+                  <option value="マーケティング">マーケティング</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
+              {occupation === 'その他' && (
+                <Input label="職種（その他）" value={occupationComment} onChange={(e) => setOccupationComment(e.target.value)} placeholder="詳細をご記入ください" />
+              )}
+            </div>
+            
+            <div>
+               <label className="block text-sm font-medium text-[#1A202C] mb-1.5">仕事内容（概要）</label>
+               <textarea
+                 className="w-full rounded-lg border border-gray-200 bg-white/50 px-3 py-2 text-sm ring-offset-white placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3A5F] min-h-[100px]"
+                 value={content} onChange={(e) => setContent(e.target.value)} placeholder="主な業務内容..." required
+               />
+            </div>
+            
+            <Input label="受入・指導メンター体制" value={mentorSystem} onChange={(e) => setMentorSystem(e.target.value)} placeholder="例: 週1回の1on1、CTO直下" />
+            <Input label="期待する成果・想定アウトプット" value={expectedOutput} onChange={(e) => setExpectedOutput(e.target.value)} placeholder="例: 新機能のリリース、企画書の作成" />
           </div>
 
-          <div>
-             <label className="block text-sm font-medium text-[#1A202C] mb-1.5">
-               仕事内容 (簡易版)
-             </label>
-             <textarea
-               className="w-full rounded-lg border border-gray-200 bg-white/50 px-3 py-2 text-sm ring-offset-white placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3A5F] min-h-[100px]"
-               value={content}
-               onChange={(e) => setContent(e.target.value)}
-               placeholder="主な業務内容..."
-             />
+          {/* 応募条件 */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-[#1E3A5F] border-b pb-2">応募条件</h2>
+            <Input label="必須要件（資格・スキル・知識など）(カンマ区切り)" value={requirements} onChange={(e) => setRequirements(e.target.value)} placeholder="React, TypeScript" />
+            <Input label="使用ツール・技術" value={tools} onChange={(e) => setTools(e.target.value)} placeholder="VSCode, Figma, Slack" />
+            <Input label="歓迎要件" value={niceToHave} onChange={(e) => setNiceToHave(e.target.value)} placeholder="バックエンド開発の経験" />
+          </div>
+
+          {/* 待遇・条件 */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-[#1E3A5F] border-b pb-2">待遇・条件</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[#1A202C] mb-1.5">報酬の有無</label>
+                <select 
+                  className="w-full rounded-lg border border-gray-200 bg-white/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3A5F]"
+                  value={isPaidStr} onChange={(e) => setIsPaidStr(e.target.value)}
+                >
+                  <option value="無償">無償</option>
+                  <option value="有償">有償</option>
+                </select>
+              </div>
+              {isPaidStr === '有償' && (
+                <Input label="想定報酬" value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="例: 時給1,500円" />
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[#1A202C] mb-1.5">交通費の支給</label>
+                <select 
+                  className="w-full rounded-lg border border-gray-200 bg-white/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3A5F]"
+                  value={hasTransportation ? 'あり' : 'なし'} onChange={(e) => setHasTransportation(e.target.value === 'あり')}
+                >
+                  <option value="なし">なし</option>
+                  <option value="あり">あり</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#1A202C] mb-1.5">宿泊費の支給</label>
+                <select 
+                  className="w-full rounded-lg border border-gray-200 bg-white/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3A5F]"
+                  value={hasAccommodation ? 'あり' : 'なし'} onChange={(e) => setHasAccommodation(e.target.value === 'あり')}
+                >
+                  <option value="なし">なし</option>
+                  <option value="あり">あり</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="持参物" value={belongings} onChange={(e) => setBelongings(e.target.value)} placeholder="PC（Mac推奨）、筆記用具" />
+              <Input label="服装" value={dressCode} onChange={(e) => setDressCode(e.target.value)} placeholder="私服可" />
+            </div>
+          </div>
+
+          {/* その他 */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-[#1E3A5F] border-b pb-2">その他</h2>
+            <div>
+               <label className="block text-sm font-medium text-[#1A202C] mb-1.5">その他伝えたい事項</label>
+               <textarea
+                 className="w-full rounded-lg border border-gray-200 bg-white/50 px-3 py-2 text-sm ring-offset-white placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3A5F] min-h-[80px]"
+                 value={otherNotes} onChange={(e) => setOtherNotes(e.target.value)} placeholder="その他、学生に伝えたいことがあれば..."
+               />
+            </div>
           </div>
 
           {/* PDF Upload Section */}
           <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 bg-gray-50/50">
              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-               募集要項PDF (詳細)
+               添付資料
              </label>
              
              {!file ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { adminService } from '@/services/admin';
 import { JobPosting } from '@/types';
@@ -24,6 +24,32 @@ export default function AdminJobsPage() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [filter, setFilter] = useState<'pending' | 'published' | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [jobApplications, setJobApplications] = useState<any[]>([]);
+  const [loadingApps, setLoadingApps] = useState(false);
+
+  const handleOpenDetail = async (job: JobWithCompanyName) => {
+    setSelectedJob(job);
+    setLoadingApps(true);
+    setJobApplications([]);
+    try {
+       const q = query(collection(db, 'applications'), where('jobId', '==', job.id));
+       const snap = await getDocs(q);
+       const apps = await Promise.all(snap.docs.map(async (docSnap) => {
+          const appData = docSnap.data();
+          let studentName = appData.studentId;
+          try {
+             const sSnap = await getDoc(doc(db, 'students', appData.studentId));
+             if (sSnap.exists()) studentName = sSnap.data().name;
+          } catch (e) {}
+          return { id: docSnap.id, studentName, ...appData };
+       }));
+       setJobApplications(apps);
+    } catch (e) {
+       console.error(e);
+    } finally {
+       setLoadingApps(false);
+    }
+  };
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -82,6 +108,41 @@ export default function AdminJobsPage() {
      } catch (error) {
         console.error(error);
         alert('差し戻しに失敗しました');
+     } finally {
+        setProcessing(null);
+     }
+  };
+
+  const handleCancel = async (jobId: string) => {
+     if (!confirm('この求人を強制的に取り消しますか？（募集終了扱いになります）')) return;
+     setProcessing(jobId);
+     try {
+        await adminService.cancelJob(jobId);
+        setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'closed' } : j));
+        setSelectedJob(null);
+     } catch (error) {
+        console.error(error);
+        alert('取り消しに失敗しました');
+     } finally {
+        setProcessing(null);
+     }
+  };
+
+  const handleCancelApp = async (app: any) => {
+     const isOffer = app.status === 'pending_student';
+     const isMatch = app.status === 'matched';
+     const label = isMatch ? 'オファー承諾の取り消し' : isOffer ? '企業のオファーの取り消し' : '応募の取り消し';
+     if (!confirm(`この${label}を実行しますか？この操作は元に戻せません。`)) return;
+     setProcessing(app.id);
+     try {
+        if (isMatch) await adminService.cancelAcceptance(app.id, app.matchId);
+        else if (isOffer) await adminService.cancelOffer(app.id);
+        else await adminService.cancelApplication(app.id);
+        
+        setJobApplications(prev => prev.map(a => a.id === app.id ? {...a, status: 'cancelled'} : a));
+     } catch (e) {
+        console.error(e);
+        alert('取り消しエラー');
      } finally {
         setProcessing(null);
      }
@@ -245,7 +306,7 @@ export default function AdminJobsPage() {
                       </div>
                       <div className="flex gap-2">
                           <Link href={`/company/jobs/${job.id}/edit`}><Button variant="secondary" size="sm" className="px-3"><Edit size={16} /></Button></Link> <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 px-3" onClick={() => handleDelete(job.id)}><Trash2 size={16} /></Button>
-                         <Button variant="outline" onClick={() => setSelectedJob(job)}>
+                         <Button variant="outline" onClick={() => handleOpenDetail(job)}>
                             詳細確認
                          </Button>
                          {job.status === 'pending_approval' && (
@@ -255,7 +316,17 @@ export default function AdminJobsPage() {
                                 onClick={() => handleApprove(job.id)}
                             >
                                 承認
-                            </Button>
+                             </Button>
+                         )}
+                         {['pending_approval', 'published'].includes(job.status) && (
+                             <Button 
+                                variant="danger" 
+                                className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                                isLoading={processing === job.id} 
+                                onClick={() => handleCancel(job.id)}
+                             >
+                                求人の取消
+                             </Button>
                          )}
                       </div>
                    </div>
@@ -290,6 +361,10 @@ export default function AdminJobsPage() {
                         <p>{selectedJob.salary}</p>
                      </div>
                    )}
+                   <div className="bg-gray-50 p-3 rounded-lg">
+                      <label className="text-xs text-gray-400 block mb-1">交通費・宿泊費の有無</label>
+                      <p>交通費({selectedJob.hasTransportation ? 'あり' : 'なし'}) / 宿泊費({selectedJob.hasAccommodation ? 'あり' : 'なし'})</p>
+                   </div>
                 </div>
 
                 {selectedJob.requirements.length > 0 && (
@@ -304,10 +379,15 @@ export default function AdminJobsPage() {
                 )}
 
                 <div>
-                   <label className="text-xs text-gray-500 block mb-1">募集内容</label>
-                   <div className="p-4 bg-gray-50 rounded-lg whitespace-pre-wrap text-sm">
-                      {selectedJob.content || '（テキスト説明なし）'}
-                   </div>
+                    <label className="text-xs text-gray-500 block mb-1">募集内容</label>
+                    <div className="p-4 bg-gray-50 rounded-lg whitespace-pre-wrap text-sm">
+                       {selectedJob.content || '（テキスト説明なし）'}
+                    </div>
+
+                    <label className="text-xs text-gray-500 block mb-1 mt-4">期待する成果・想定アウトプット</label>
+                    <div className="p-4 bg-gray-50 rounded-lg whitespace-pre-wrap text-sm">
+                       {selectedJob.expectedOutput || '未指定'}
+                    </div>
 
                    {selectedJob.pdfFileId && (
                       <div className="mt-4 border-t pt-4">
@@ -317,11 +397,53 @@ export default function AdminJobsPage() {
                              className="w-full flex justify-center items-center gap-2"
                              isLoading={processing === `pdf-${selectedJob.pdfFileId}`}
                           >
-                             <ExternalLink size={16} /> 募集要項PDFを確認する
+                             <ExternalLink size={16} /> 添付資料を確認する
                           </Button>
                       </div>
                    )}
                 </div>
+
+                <div className="mt-2 border-t pt-4">
+                   <h3 className="text-sm font-bold text-[#1E3A5F] mb-3">応募状況 ({jobApplications.length}名)</h3>
+                   {loadingApps ? (
+                      <div className="flex justify-center p-4"><Loader2 className="animate-spin text-gray-400" size={20} /></div>
+                   ) : jobApplications.length === 0 ? (
+                      <p className="text-sm text-gray-500">応募者はまだいません。</p>
+                   ) : (
+                      <div className="space-y-3 max-h-40 overflow-y-auto pr-2">
+                         {jobApplications.map(app => (
+                            <div key={app.id} className="bg-gray-50 p-3 rounded-lg flex justify-between items-center text-sm border">
+                               <div>
+                                  <p className="font-bold">{app.studentName}</p>
+                                  <div className="flex gap-2 text-[10px] mt-1">
+                                     <span className="text-gray-500">応募日: {app.createdAt?.toDate ? format(app.createdAt.toDate(), 'MM/dd') : '-'}</span>
+                                  </div>
+                               </div>
+                               <div className="text-right flex flex-col items-end gap-1">
+                                  <Badge variant="outline" className="text-[10px] py-0">{app.status}</Badge>
+                                  {app.interviewDate ? (
+                                     <span className="text-[#2B6CB0] font-bold text-[10px] bg-[#2B6CB0]/10 px-2 py-0.5 rounded">
+                                        面談: {app.interviewDate}
+                                     </span>
+                                  ) : (
+                                     <span className="text-gray-400 text-[10px]">面談未定</span>
+                                  )}
+                                  {['pending_admin', 'pending_company', 'pending_student', 'matched'].includes(app.status) && (
+                                     <Button 
+                                        variant="danger" size="sm" 
+                                        className="mt-1 h-6 text-[10px] px-2 py-0"
+                                        isLoading={processing === app.id} 
+                                        onClick={() => handleCancelApp(app)}
+                                     >
+                                        取消
+                                     </Button>
+                                  )}
+                               </div>
+                            </div>
+                         ))}
+                      </div>
+                   )}
+                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t">
                    {selectedJob.status === 'pending_approval' && (
@@ -333,6 +455,11 @@ export default function AdminJobsPage() {
                           承認して公開
                        </Button>
                      </>
+                   )}
+                   {['pending_approval', 'published'].includes(selectedJob.status) && (
+                      <Button variant="danger" className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200" onClick={() => handleCancel(selectedJob.id)} isLoading={processing === selectedJob.id}>
+                         強制取り消し
+                      </Button>
                    )}
                    {selectedJob.status === 'published' && (
                       <Button variant="outline" onClick={() => setSelectedJob(null)}>

@@ -38,7 +38,6 @@ export function Sidebar() {
         return [
           { icon: LayoutDashboard, label: 'ダッシュボード', href: '/company/dashboard' },
           { icon: Briefcase, label: '自社求人管理', href: '/company/jobs' },
-          { icon: Users, label: '応募者管理', href: '/company/applicants' },
           { icon: User, label: '企業情報', href: '/company/profile' },
         ];
       
@@ -61,9 +60,11 @@ export function Sidebar() {
 
   return (
     <aside className="fixed left-4 top-4 z-40 h-[calc(100vh-2rem)] w-18 glass rounded-2xl border-r-0 flex flex-col items-center py-6 transition-all duration-300">
-      <div className="mb-8 p-2 rounded-xl bg-[#161B33]/10">
-        <div className="w-8 h-8 rounded-full bg-[#161B33]" />
-      </div>
+      {user?.role === 'admin' && (
+        <div className="mb-8 p-2 rounded-xl bg-[#161B33]/10">
+          <div className="w-8 h-8 rounded-full bg-[#161B33]" />
+        </div>
+      )}
 
       <nav className="flex-1 flex flex-col gap-4 w-full items-center px-2">
         {menuItems.map((item) => {

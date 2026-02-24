@@ -25,11 +25,14 @@ export default function AdminApplicationsPage() {
   const [selectedApp, setSelectedApp] = useState<any>(null); // Details loaded on demand
   const [processing, setProcessing] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState<'pending' | 'all'>('all');
 
   const fetchApps = async () => {
     setLoading(true);
     try {
-      const data = await adminService.getPendingApplications();
+      const data = filter === 'pending' 
+        ? await adminService.getPendingApplications() 
+        : await adminService.getAllApplications();
       // Resolve details
       const resolvedApps = await Promise.all(data.map(async (app) => {
          let studentName = app.studentId;
@@ -70,7 +73,7 @@ export default function AdminApplicationsPage() {
 
   useEffect(() => {
     fetchApps();
-  }, []);
+  }, [filter]);
 
   const handleOpenDetail = async (app: Application) => {
      // Ideally we fetch details here
@@ -98,22 +101,62 @@ export default function AdminApplicationsPage() {
      }
   };
 
+  const handleCancel = async (app: Application) => {
+     const isOffer = app.status === 'pending_student';
+     const isMatch = app.status === 'matched';
+     const label = isMatch ? 'オファー承諾の取り消し' : isOffer ? '企業のオファーの取り消し' : '応募の取り消し';
+     if (!confirm(`この${label}を実行しますか？この操作は元に戻せません。`)) return;
+     setProcessing(app.id);
+     try {
+        if (isMatch) {
+            await adminService.cancelAcceptance(app.id, app.matchId);
+        } else if (isOffer) {
+            await adminService.cancelOffer(app.id);
+        } else {
+            await adminService.cancelApplication(app.id);
+        }
+        setApps(prev => prev.map(a => a.id === app.id ? { ...a, status: 'cancelled' } : a));
+        setSelectedApp(null);
+     } catch (error) {
+        console.error(error);
+        alert('取り消しに失敗しました');
+     } finally {
+        setProcessing(null);
+     }
+  };
+
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>;
 
   return (
     <div className="space-y-6">
        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
          <div>
-            <h1 className="text-2xl font-bold text-[#1E3A5F]">応募承認</h1>
-            <p className="text-gray-500">管理者確認待ちの応募が {filteredApps.length} 件あります</p>
+            <h1 className="text-2xl font-bold text-[#1E3A5F]">応募・オファー管理</h1>
+            <p className="text-gray-500">管理者として応募やオファーの確認・取り消しができます</p>
          </div>
-         <input
-           type="text"
-           placeholder="学生名・企業名で検索..."
-           className="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
-           value={searchTerm}
-           onChange={(e) => setSearchTerm(e.target.value)}
-        />
+         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+           <input
+             type="text"
+             placeholder="学生名・企業名で検索..."
+             className="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+             value={searchTerm}
+             onChange={(e) => setSearchTerm(e.target.value)}
+           />
+           <div className="flex bg-gray-100 p-1 rounded-lg self-start">
+              <button 
+                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${filter === 'pending' ? 'bg-white shadow text-[#1E3A5F]' : 'text-gray-500 hover:text-gray-700'}`}
+                 onClick={() => setFilter('pending')}
+              >
+                 承認待ち
+              </button>
+              <button 
+                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${filter === 'all' ? 'bg-white shadow text-[#1E3A5F]' : 'text-gray-500 hover:text-gray-700'}`}
+                 onClick={() => setFilter('all')}
+              >
+                 すべて
+              </button>
+           </div>
+         </div>
        </div>
 
        {filteredApps.length === 0 ? (
@@ -127,8 +170,13 @@ export default function AdminApplicationsPage() {
                    <div className="flex justify-between items-center">
                       <div>
                          <div className="flex items-center gap-2 mb-2">
-                             <Badge variant="warning">管理者承認待ち</Badge>
-                             <span className="text-xs text-gray-500">ID: {app.id}</span>
+                              {app.status === 'pending_admin' && <Badge variant="warning">管理者承認待ち</Badge>}
+                              {app.status === 'pending_company' && <Badge variant="warning">企業選考中</Badge>}
+                              {app.status === 'pending_student' && <Badge variant="success">オファー中</Badge>}
+                              {app.status === 'matched' && <Badge variant="success">マッチング成立</Badge>}
+                              {app.status === 'cancelled' && <Badge variant="outline">取り消し済み</Badge>}
+                              {app.status.includes('rejected') && <Badge variant="error">不採用</Badge>}
+                              <span className="text-xs text-gray-500">ID: {app.id}</span>
                          </div>
                          <h3 className="font-bold text-[#1E3A5F] mb-1">{app.jobTitle}</h3>
                          <div className="text-sm text-gray-600 mb-2">
@@ -143,13 +191,25 @@ export default function AdminApplicationsPage() {
                          <Button variant="outline" onClick={() => handleOpenDetail(app)}>
                             詳細
                          </Button>
-                         <Button 
-                            className="bg-[#1E3A5F] hover:bg-[#16304F]"
-                            isLoading={processing === app.id} 
-                            onClick={() => handleApprove(app.id)}
-                         >
-                            承認
-                         </Button>
+                         {app.status === 'pending_admin' && (
+                           <Button 
+                              className="bg-[#1E3A5F] hover:bg-[#16304F]"
+                              isLoading={processing === app.id} 
+                              onClick={() => handleApprove(app.id)}
+                           >
+                              承認
+                           </Button>
+                         )}
+                         {['pending_admin', 'pending_company', 'pending_student', 'matched'].includes(app.status) && (
+                            <Button 
+                               variant="danger"
+                               className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                               isLoading={processing === app.id} 
+                               onClick={() => handleCancel(app as any)}
+                            >
+                               {app.status === 'matched' ? '承諾取消' : app.status === 'pending_student' ? 'オファー取消' : '応募取消'}
+                            </Button>
+                         )}
                       </div>
                    </div>
                 </Card>
@@ -185,9 +245,16 @@ export default function AdminApplicationsPage() {
 
                 <div className="flex justify-end gap-3 pt-4 border-t">
                    <Button variant="secondary" onClick={() => setSelectedApp(null)}>閉じる</Button>
-                   <Button className="bg-[#1E3A5F] hover:bg-[#16304F]" onClick={() => handleApprove(selectedApp.id)} isLoading={processing === selectedApp.id}>
-                      承認して企業へ送る
-                   </Button>
+                   {selectedApp.status === 'pending_admin' && (
+                     <Button className="bg-[#1E3A5F] hover:bg-[#16304F]" onClick={() => handleApprove(selectedApp.id)} isLoading={processing === selectedApp.id}>
+                        承認して企業へ送る
+                     </Button>
+                   )}
+                   {['pending_admin', 'pending_company', 'pending_student', 'matched'].includes(selectedApp.status) && (
+                     <Button variant="danger" className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200" onClick={() => handleCancel(selectedApp as any)} isLoading={processing === selectedApp.id}>
+                        取り消しを実行する
+                     </Button>
+                   )}
                 </div>
              </div>
           )}

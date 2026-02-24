@@ -26,6 +26,8 @@ export default function EditJobPage() {
   const [salary, setSalary] = useState('');
   const [requirements, setRequirements] = useState('');
   const [status, setStatus] = useState<string>('');
+  const [periodStart, setPeriodStart] = useState('');
+  const [periodEnd, setPeriodEnd] = useState('');
   
   // File Upload State
   const [file, setFile] = useState<File | null>(null);
@@ -54,6 +56,8 @@ export default function EditJobPage() {
         setSalary(data.salary || '');
         setRequirements(data.requirements?.join(', ') || '');
         setStatus(data.status || '');
+        setPeriodStart(data.periodStart || '');
+        setPeriodEnd(data.periodEnd || '');
         setFileId(data.pdfFileId || null);
         
         // existingFileName? We don't store filename in jobPosting usually, but mostly just ID.
@@ -117,7 +121,7 @@ export default function EditJobPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!fileId && !confirm('PDF募集要項なしで登録しますか？')) return;
+    if (!fileId && !confirm('添付資料なしで登録しますか？')) return;
 
     setSubmitting(true);
     try {
@@ -129,6 +133,8 @@ export default function EditJobPage() {
         content,
         location,
         salary,
+        periodStart,
+        periodEnd,
         requirements: requirements.split(',').map(s => s.trim()).filter(Boolean),
         pdfFileId: fileId,
         status: newStatus,
@@ -192,6 +198,15 @@ export default function EditJobPage() {
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-[#1A202C] mb-1.5">実施期間</label>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <Input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} placeholder="YYYY/MM/DD" />
+              <span className="hidden sm:inline text-gray-500">〜</span>
+              <Input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} placeholder="YYYY/MM/DD" />
+            </div>
+          </div>
+
+          <div>
              <label className="block text-sm font-medium text-[#1A202C] mb-1.5">
                応募要件 / スキル (カンマ区切り)
              </label>
@@ -217,7 +232,7 @@ export default function EditJobPage() {
           {/* PDF Upload Section */}
           <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 bg-gray-50/50">
              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-               募集要項PDF (詳細)
+               添付資料
              </label>
              
              {!file ? (

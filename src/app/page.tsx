@@ -152,50 +152,6 @@ function CompanyDashboard({ name }: { name: string }) {
   );
 }
 
-// --- Admin Dashboard ---
-function AdminDashboard({ name }: { name: string }) {
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-[#1E3A5F]">管理パネル 🛡️</h1>
-        <p className="text-gray-500 mt-1">こんにちは、{name}さん。システム全体を管理しましょう</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <DashboardCard
-          icon={<LayoutDashboard size={22} className="text-[#1E3A5F]" />}
-          title="統計ダッシュボード"
-          description="ユーザー数・求人数・マッチング数など全体の統計を確認"
-          href="/admin/dashboard"
-        />
-        <DashboardCard
-          icon={<CheckCircle size={22} className="text-[#1E3A5F]" />}
-          title="求人承認"
-          description="企業から投稿された求人の確認・承認を行います"
-          href="/admin/jobs"
-        />
-        <DashboardCard
-          icon={<FileText size={22} className="text-[#1E3A5F]" />}
-          title="応募管理"
-          description="全応募の一覧確認・ステータスの管理を行います"
-          href="/admin/applications"
-        />
-        <DashboardCard
-          icon={<Users size={22} className="text-[#1E3A5F]" />}
-          title="ユーザー管理"
-          description="登録ユーザーの一覧表示・ロール管理を行います"
-          href="/admin/users"
-        />
-        <DashboardCard
-          icon={<Building size={22} className="text-[#1E3A5F]" />}
-          title="企業管理"
-          description="登録企業の確認・承認・管理を行います"
-          href="/admin/companies"
-        />
-      </div>
-    </div>
-  );
-}
 
 // --- Guest Landing ---
 function GuestLanding() {
@@ -247,11 +203,17 @@ function GuestLanding() {
   );
 }
 
-// --- Main Page ---
 export default function Home() {
   const { user, loading } = useAuth();
+  const router = useRouter();
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && user?.role === 'admin') {
+      router.push('/admin/dashboard');
+    }
+  }, [user, loading, router]);
+
+  if (loading || (user && user.role === 'admin')) {
     return <MainLayout><div className="flex justify-center p-20">Loading...</div></MainLayout>;
   }
 
@@ -264,7 +226,7 @@ export default function Home() {
       case 'company':
         return <CompanyDashboard name={user.name} />;
       case 'admin':
-        return <AdminDashboard name={user.name} />;
+        return null; // Redirected by useEffect
       default:
         return <GuestLanding />;
     }

@@ -125,7 +125,7 @@ export default function CompanyRegisterPage() {
         )}
 
         <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm mb-6 text-amber-800">
-          ※ 企業アカウントは管理者の承認後に求人を掲載できるようになります。
+          ※ 企業アカウントは管理者の承認後に求人を掲載できるようになります。問題がある場合は<a href="mailto:internship@kamiyama.ac.jp" className="underline">internship@kamiyama.ac.jp</a>に連絡をお願いします。
         </div>
 
         <form onSubmit={handleRegister} className="space-y-5">

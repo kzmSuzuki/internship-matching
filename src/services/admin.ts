@@ -232,6 +232,45 @@ class AdminService {
       throw error;
     }
   }
+
+  async getAllApplications(): Promise<Application[]> {
+    const q = query(collection(db, 'applications'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Application));
+  }
+
+  async cancelApplication(appId: string) {
+    await updateDoc(doc(db, 'applications', appId), {
+      status: 'cancelled',
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  async cancelOffer(appId: string) {
+    await updateDoc(doc(db, 'applications', appId), {
+      status: 'cancelled',
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  async cancelAcceptance(appId: string, matchId?: string) {
+    await updateDoc(doc(db, 'applications', appId), {
+      status: 'cancelled',
+      updatedAt: serverTimestamp()
+    });
+    if (matchId) {
+      await updateDoc(doc(db, 'matches', matchId), {
+         status: 'cancelled'
+      });
+    }
+  }
+
+  async cancelJob(jobId: string) {
+    await updateDoc(doc(db, 'jobPostings', jobId), {
+      status: 'closed',
+      updatedAt: serverTimestamp()
+    });
+  }
   
   // Helper to fetch details for apps
   async getApplicationDetails(app: Application) {

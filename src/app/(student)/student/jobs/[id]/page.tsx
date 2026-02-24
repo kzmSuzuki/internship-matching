@@ -120,6 +120,7 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
 
   const handleViewPdf = async () => {
     if (!job?.pdfFileId || !auth.currentUser) return;
+    setPdfLoading(true);
     try {
       const token = await auth.currentUser.getIdToken();
       const res = await fetch(`/api/pdf/${job.pdfFileId}`, {
@@ -127,12 +128,12 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
       });
       if (!res.ok) throw new Error('PDF取得失敗');
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      setPdfUrl(URL.createObjectURL(blob));
     } catch (e) {
       console.error(e);
       alert('PDFを表示できませんでした');
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -180,14 +181,22 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
                      <Badge variant="success" className="text-lg px-4 py-2">応募済み</Badge>
                   )}
                   <span className="text-xs text-gray-500">
-                    {isRejected ? '※再応募はできません' : '※ステータスは応募履歴で確認できます'}
+                    {isRejected ? '※再応募はできません。' : '※ステータスは応募履歴で確認できます。'}
                   </span>
+                  {!isRejected && (
+                    <span className="text-xs text-gray-500 block">
+                      間違って応募した場合は<a href="mailto:internship@kamiyama.ac.jp" className="underline">internship@kamiyama.ac.jp</a>に連絡をお願いします。
+                    </span>
+                  )}
                </div>
             ) : hasActiveApplication ? (
               <div className="flex flex-col items-end gap-2 text-warning-600">
                  <Badge variant="warning" className="text-lg px-4 py-2 opacity-50 cursor-not-allowed">他の求人に応募中</Badge>
                  <span className="text-xs text-gray-500">
                    ※同時に応募できるのは1件のみです
+                 </span>
+                 <span className="text-xs font-bold text-red-500 mt-2 block">
+                   間違って応募した場合はinternship@xxxx.jpに連絡をお願いします
                  </span>
               </div>
             ) : (
@@ -212,35 +221,108 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
         </div>
       </Card>
 
-      {/* PDF / Content Section */}
+      {/* Main Content Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
           <Card className="p-6">
-            <h2 className="text-lg font-bold mb-4 border-b pb-2">募集要項 (PDF)</h2>
+            <h2 className="text-lg font-bold mb-4 border-b pb-2">募集要項</h2>
+            
+            <div className="space-y-6">
+              {/* 基本情報 */}
+              <div>
+                <h3 className="text-sm font-bold text-[#1E3A5F] mb-3">基本情報</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded-lg">
+                  <div><span className="text-gray-500 block text-xs">職種</span>{job.occupation || '-'}{job.occupationComment ? ` (${job.occupationComment})` : ''}</div>
+                  <div><span className="text-gray-500 block text-xs">部署・チーム名</span>{job.department || '-'}</div>
+                  <div><span className="text-gray-500 block text-xs">就業場所</span>{job.location || '-'}</div>
+                  <div><span className="text-gray-500 block text-xs">最寄駅・アクセス</span>{job.nearestStation || '-'}</div>
+                  <div><span className="text-gray-500 block text-xs">実施期間</span>{job.periodStart ? `${job.periodStart}〜${job.periodEnd || ''}` : '随時'}</div>
+                  <div><span className="text-gray-500 block text-xs">想定日数・時間</span>{job.estimatedDaysTime || '-'}</div>
+                  <div><span className="text-gray-500 block text-xs">受入人数 (目安)</span>{job.minCapacity ? `${job.minCapacity}名〜${job.maxCapacity ? job.maxCapacity + '名' : ''}` : '定員なし'}</div>
+                  <div><span className="text-gray-500 block text-xs">実施形態</span>{job.workFormat || '-'}{job.workFormatComment ? ` (${job.workFormatComment})` : ''}</div>
+                </div>
+              </div>
+
+              {/* 簡単な仕事内容 */}
+              <div>
+                <h3 className="text-sm font-bold text-[#1E3A5F] mb-3">仕事内容・期待すること</h3>
+                <div className="bg-gray-50 p-4 rounded-lg text-sm whitespace-pre-wrap">
+                   {job.content || '詳細な記載はありません。'}
+                </div>
+                {job.expectedOutput && (
+                   <p className="text-sm mt-3"><span className="font-semibold text-gray-700">期待する成果・想定アウトプット:</span> {job.expectedOutput}</p>
+                )}
+                {job.mentorSystem && (
+                   <p className="text-sm mt-1"><span className="font-semibold text-gray-700">メンター体制:</span> {job.mentorSystem}</p>
+                )}
+              </div>
+
+              {/* 応募要件 */}
+              <div>
+                <h3 className="text-sm font-bold text-[#1E3A5F] mb-3">応募要件・必須スキル</h3>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {job.requirements && job.requirements.length > 0 ? (
+                    job.requirements.map((req, i) => (
+                      <Badge key={i} variant="outline" className="bg-gray-50">{req}</Badge>
+                    ))
+                  ) : <span className="text-sm text-gray-500">特になし</span>}
+                </div>
+                {job.tools && <p className="text-sm mt-3"><span className="font-semibold text-gray-700">使用ツール:</span> {job.tools}</p>}
+                {job.niceToHave && <p className="text-sm mt-1"><span className="font-semibold text-gray-700">歓迎要件:</span> {job.niceToHave}</p>}
+              </div>
+
+              {/* 待遇・条件 */}
+              <div>
+                <h3 className="text-sm font-bold text-[#1E3A5F] mb-3">待遇・条件</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded-lg">
+                  <div><span className="text-gray-500 block text-xs">報酬</span>{job.isPaid ? '有償' : '無償'} {job.salary && `(${job.salary})`}</div>
+                  <div><span className="text-gray-500 block text-xs">交通費・宿泊費の有無</span>交通費({job.hasTransportation ? 'あり' : 'なし'}) / 宿泊費({job.hasAccommodation ? 'あり' : 'なし'})</div>
+                  <div><span className="text-gray-500 block text-xs">服装</span>{job.dressCode || '-'}</div>
+                  <div className="sm:col-span-2"><span className="text-gray-500 block text-xs">持参物</span>{job.belongings || '-'}</div>
+                </div>
+              </div>
+              
+              {/* その他 */}
+              {job.otherNotes && (
+                <div>
+                   <h3 className="text-sm font-bold text-[#1E3A5F] mb-3">その他</h3>
+                   <div className="p-4 bg-gray-50 rounded-lg text-sm whitespace-pre-wrap">
+                      {job.otherNotes}
+                   </div>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="text-lg font-bold mb-4 border-b pb-2">添付資料</h2>
              {job.pdfFileId ? (
                 <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
                   <div className="mb-4 text-[#1E3A5F]">
                     <ExternalLink size={48} />
                   </div>
                   <p className="text-gray-600 mb-4 font-medium">PDFファイルが添付されています</p>
-                  <Button 
-                    variant="outline" 
-                    className="w-full max-w-xs flex items-center justify-center gap-2 bg-white hover:bg-gray-50" 
-                    onClick={async () => {
-                       setPdfLoading(true);
-                       await handleViewPdf();
-                       setPdfLoading(false);
-                    }}
-                    isLoading={pdfLoading}
-                  >
-                    {!pdfLoading && <ExternalLink size={16} />}
-                    PDFを確認する
-                  </Button>
+                  
+                  {pdfUrl ? (
+                    <a href={pdfUrl} target="_blank" className="flex items-center gap-2 px-6 py-2 bg-white border border-gray-300 rounded-lg text-[#1E3A5F] font-bold hover:bg-gray-50 transition-colors">
+                      <ExternalLink size={16} /> 添付資料を確認する
+                    </a>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      className="w-full max-w-xs flex items-center justify-center gap-2 bg-white hover:bg-gray-50" 
+                      onClick={handleViewPdf}
+                      isLoading={pdfLoading}
+                    >
+                      {!pdfLoading && <ExternalLink size={16} />}
+                      読み込む
+                    </Button>
+                  )}
                 </div>
              ) : (
-                <div className="aspect-[1/4] w-full bg-gray-50 rounded-lg flex flex-col items-center justify-center text-gray-400 p-8">
-                   <AlertCircle size={32} className="mb-2" />
-                   <p>PDFファイルがありません</p>
+                <div className="bg-gray-50 rounded-lg flex flex-col items-center justify-center text-gray-500 p-6 border border-gray-200">
+                   <AlertCircle size={24} className="mb-2 text-gray-400" />
+                   <p className="font-medium text-sm">添付資料はありません</p>
                 </div>
              )}
           </Card>

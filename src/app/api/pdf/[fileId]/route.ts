@@ -85,10 +85,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
             bytes[i] = binaryString.charCodeAt(i);
         }
         
+        const originalName = result.fileName || 'document.pdf';
+        const encodedName = encodeURIComponent(originalName);
+
         return new NextResponse(bytes, {
             headers: {
                 'Content-Type': result.mimeType || 'application/pdf',
-                'Content-Disposition': `inline; filename="${result.fileName || 'document.pdf'}"`,
+                'Content-Disposition': `inline; filename="document.pdf"; filename*=UTF-8''${encodedName}`,
                 'Cache-Control': 'no-store, max-age=0',
             }
         });
