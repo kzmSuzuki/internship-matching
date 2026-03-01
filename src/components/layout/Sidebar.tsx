@@ -36,7 +36,7 @@ export function Sidebar() {
       
       case 'company':
         return [
-          { icon: LayoutDashboard, label: 'ダッシュボード', href: '/company/dashboard' },
+          { icon: LayoutDashboard, label: 'ダッシュボード', href: '/' },
           { icon: Briefcase, label: '自社求人管理', href: '/company/jobs' },
           { icon: User, label: '企業情報', href: '/company/profile' },
         ];

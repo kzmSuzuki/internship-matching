@@ -118,12 +118,6 @@ function CompanyDashboard({ name }: { name: string }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <DashboardCard
-          icon={<LayoutDashboard size={22} className="text-[#1E3A5F]" />}
-          title="ダッシュボード"
-          description="求人・応募の統計情報を一目で確認できます"
-          href="/company/dashboard"
-        />
-        <DashboardCard
           icon={<Briefcase size={22} className="text-[#1E3A5F]" />}
           title="求人管理"
           description="作成した求人の一覧確認・新規作成ができます"
@@ -134,12 +128,6 @@ function CompanyDashboard({ name }: { name: string }) {
           title="新規求人作成"
           description="新しいインターンシップ求人を作成・公開できます"
           href="/company/jobs/new"
-        />
-        <DashboardCard
-          icon={<Users size={22} className="text-[#1E3A5F]" />}
-          title="応募者管理"
-          description="応募してきた学生の確認・選考を行えます"
-          href="/company/applicants"
         />
         <DashboardCard
           icon={<Building2 size={22} className="text-[#1E3A5F]" />}

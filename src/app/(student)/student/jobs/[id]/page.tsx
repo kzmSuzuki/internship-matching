@@ -21,9 +21,9 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
-  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState<Record<string, boolean>>({});
   const [existingApp, setExistingApp] = useState<Application | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const router = useRouter();
 
@@ -118,22 +118,22 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const handleViewPdf = async () => {
-    if (!job?.pdfFileId || !auth.currentUser) return;
-    setPdfLoading(true);
+  const handleViewPdf = async (fileId: string) => {
+    if (!auth.currentUser) return;
+    setPdfLoading(prev => ({ ...prev, [fileId]: true }));
     try {
       const token = await auth.currentUser.getIdToken();
-      const res = await fetch(`/api/pdf/${job.pdfFileId}`, {
+      const res = await fetch(`/api/pdf/${fileId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('PDF取得失敗');
       const blob = await res.blob();
-      setPdfUrl(URL.createObjectURL(blob));
+      setPdfUrl(prev => ({ ...prev, [fileId]: URL.createObjectURL(blob) }));
     } catch (e) {
       console.error(e);
       alert('PDFを表示できませんでした');
     } finally {
-      setPdfLoading(false);
+      setPdfLoading(prev => ({ ...prev, [fileId]: false }));
     }
   };
 
@@ -296,25 +296,53 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
 
           <Card className="p-6">
             <h2 className="text-lg font-bold mb-4 border-b pb-2">添付資料</h2>
-             {job.pdfFileId ? (
+             {(job.pdfFileIds && job.pdfFileIds.length > 0) ? (
+                <div className="grid gap-4">
+                   {job.pdfFileIds.map((fileId, idx) => (
+                      <div key={fileId} className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        <div className="mb-3 text-[#1E3A5F]">
+                          <ExternalLink size={32} />
+                        </div>
+                        <p className="text-sm text-gray-600 mb-3 font-medium">添付資料 {idx + 1}</p>
+                        
+                        {pdfUrl[fileId] ? (
+                          <a href={pdfUrl[fileId]} target="_blank" className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-[#1E3A5F] font-bold text-sm hover:bg-gray-50 transition-colors">
+                            <ExternalLink size={16} /> 添付資料を確認する
+                          </a>
+                        ) : (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="bg-white hover:bg-gray-50 flex items-center gap-1"
+                            onClick={() => handleViewPdf(fileId)}
+                            isLoading={pdfLoading[fileId]}
+                          >
+                            {!pdfLoading[fileId] && <ExternalLink size={14} className="mr-1" />}
+                            読み込む
+                          </Button>
+                        )}
+                      </div>
+                   ))}
+                </div>
+             ) : job.pdfFileId ? (
                 <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
                   <div className="mb-4 text-[#1E3A5F]">
                     <ExternalLink size={48} />
                   </div>
                   <p className="text-gray-600 mb-4 font-medium">PDFファイルが添付されています</p>
                   
-                  {pdfUrl ? (
-                    <a href={pdfUrl} target="_blank" className="flex items-center gap-2 px-6 py-2 bg-white border border-gray-300 rounded-lg text-[#1E3A5F] font-bold hover:bg-gray-50 transition-colors">
+                  {pdfUrl[job.pdfFileId] ? (
+                    <a href={pdfUrl[job.pdfFileId]} target="_blank" className="flex items-center gap-2 px-6 py-2 bg-white border border-gray-300 rounded-lg text-[#1E3A5F] font-bold hover:bg-gray-50 transition-colors">
                       <ExternalLink size={16} /> 添付資料を確認する
                     </a>
                   ) : (
                     <Button 
                       variant="outline" 
                       className="w-full max-w-xs flex items-center justify-center gap-2 bg-white hover:bg-gray-50" 
-                      onClick={handleViewPdf}
-                      isLoading={pdfLoading}
+                      onClick={() => handleViewPdf(job.pdfFileId!)}
+                      isLoading={pdfLoading[job.pdfFileId]}
                     >
-                      {!pdfLoading && <ExternalLink size={16} />}
+                      {!pdfLoading[job.pdfFileId] && <ExternalLink size={16} />}
                       読み込む
                     </Button>
                   )}

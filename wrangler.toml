@@ -1,4 +1,4 @@
-name = "internship-matching"
+name = "match"
 main = ".open-next/worker.js"
 compatibility_date = "2025-09-23"
 compatibility_flags = ["nodejs_compat"]

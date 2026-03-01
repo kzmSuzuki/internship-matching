@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
-import { Loader2, Plus, ShieldAlert, Trash2, Edit, Users, Clock } from 'lucide-react';
+import { Loader2, Plus, ShieldAlert, Trash2, Edit, Users, Clock, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Application, Student } from '@/types';
@@ -268,12 +268,7 @@ export default function CompanyJobListPage() {
                   <div className="flex items-center gap-2">
                     <Link href={`/company/jobs/${job.id}`}>
                       <Button variant="outline" size="sm" className="flex items-center gap-1 font-bold text-[#1E3A5F]">
-                        求人詳細編集
-                      </Button>
-                    </Link>
-                    <Link href={`/company/jobs/${job.id}/edit`}>
-                      <Button variant="secondary" size="sm">
-                        <Edit size={16} />
+                        求人詳細・編集
                       </Button>
                     </Link>
                     <Button 
@@ -366,6 +361,20 @@ export default function CompanyJobListPage() {
                      ))}
                   </div>
                </div>
+
+               {selectedApp.student.links && selectedApp.student.links.length > 0 && selectedApp.student.links[0] !== "" && (
+               <div>
+                  <label className="text-xs text-gray-500">ポートフォリオ / リンク</label>
+                  <div className="flex flex-col gap-1 mt-1">
+                     {selectedApp.student.links.map((link, i) => (
+                        <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                           <ExternalLink size={14} />
+                           {link}
+                        </a>
+                     ))}
+                  </div>
+               </div>
+               )}
                
                <div className="border-t pt-4">
                   <label className="text-sm font-bold text-[#1E3A5F]">面談日の設定</label>

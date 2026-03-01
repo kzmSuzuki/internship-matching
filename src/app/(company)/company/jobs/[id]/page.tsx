@@ -18,6 +18,8 @@ import { auth } from '@/lib/firebase';
 import { matchingService } from '@/services/matching';
 import { emailService } from '@/services/email';
 import { notificationService } from '@/services/notification';
+import { JobForm, JobFormData } from '@/components/company/JobForm';
+import { serverTimestamp } from 'firebase/firestore';
 
 interface ApplicationWithProfile extends Application {
   student: Student & { email?: string };
@@ -41,6 +43,7 @@ export default function CompanyJobDetailPage({ params }: { params: { id: string 
   const [confirmModal, setConfirmModal] = useState<{ appId: string, action: 'offer' | 'reject' } | null>(null);
   const [message, setMessage] = useState('');
   const [processing, setProcessing] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -247,296 +250,54 @@ export default function CompanyJobDetailPage({ params }: { params: { id: string 
         <div className="flex justify-between items-start mb-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold text-[#1E3A5F]">{job.title}</h1>
+              <h1 className="text-2xl font-bold text-[#1E3A5F]">求人詳細・編集</h1>
               {getStatusBadge(job.status)}
-            </div>
-            <div className="flex items-center gap-4 text-sm text-gray-500">
-              <span className="flex items-center gap-1">
-                <MapPin size={14} /> {job.location || '未設定'}
-              </span>
-              {job.salary && <span>💰 {job.salary}</span>}
-              <span className="flex items-center gap-1">
-                <Calendar size={14} />
-                {job.createdAt?.toDate ? format(job.createdAt.toDate(), 'yyyy/MM/dd') : '-'} 作成
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Status Info */}
-        {job.status === 'pending_approval' && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-sm text-amber-800">
-            ⏳ 管理者による承認を待っています。承認後に学生へ公開されます。
-          </div>
-        )}
-        {job.status === 'draft' && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-6 text-sm text-gray-600">
-            📝 この求人は下書き状態です。管理者からの差し戻しによる可能性があります。
-          </div>
-        )}
-
-        {/* Requirements */}
-        {requirements.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-sm font-bold text-[#1E3A5F] mb-2 border-b pb-1">応募要件 / スキル</h3>
-            <div className="flex flex-wrap gap-2">
-              {requirements.map((req, i) => (
-                <Badge key={i} variant="outline" className="bg-gray-50">{req}</Badge>
-              ))}
-            </div>
-            {job.tools && <p className="text-sm mt-3"><span className="font-semibold text-gray-700">使用ツール:</span> {job.tools}</p>}
-            {job.niceToHave && <p className="text-sm mt-1"><span className="font-semibold text-gray-700">歓迎要件:</span> {job.niceToHave}</p>}
-          </div>
-        )}
-
-        {/* Content */}
-        {job.content && (
-          <div className="mb-6">
-            <h3 className="text-sm font-bold text-[#1E3A5F] mb-2 border-b pb-1">仕事内容</h3>
-            <div className="bg-gray-50 rounded-lg p-4 text-sm whitespace-pre-wrap">
-              {job.content}
-            </div>
-            {job.mentorSystem && <p className="text-sm mt-3"><span className="font-semibold text-gray-700">メンター体制:</span> {job.mentorSystem}</p>}
-            {job.expectedOutput && <p className="text-sm mt-1"><span className="font-semibold text-gray-700">期待する成果・想定アウトプット:</span> {job.expectedOutput}</p>}
-          </div>
-        )}
-
-        {/* Conditions */}
-        <div className="mb-6">
-           <h3 className="text-sm font-bold text-[#1E3A5F] mb-2 border-b pb-1">待遇・条件・その他</h3>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <p><span className="font-semibold text-gray-700">報酬:</span> {job.isPaid ? '有償' : '無償'} {job.salary && `(${job.salary})`}</p>
-              <p><span className="font-semibold text-gray-700">交通費・宿泊費の有無:</span> 交通費({job.hasTransportation ? 'あり' : 'なし'}) / 宿泊費({job.hasAccommodation ? 'あり' : 'なし'})</p>
-              {job.belongings && <p><span className="font-semibold text-gray-700">持参物:</span> {job.belongings}</p>}
-              {job.dressCode && <p><span className="font-semibold text-gray-700">服装:</span> {job.dressCode}</p>}
+             </div>
+             <p className="text-sm text-gray-500">この画面から詳細の確認および編集が行えます。</p>
            </div>
-           {job.otherNotes && (
-              <div className="mt-4">
-                 <span className="font-semibold text-sm text-gray-700">その他:</span>
-                 <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{job.otherNotes}</p>
-              </div>
-           )}
-        </div>
-
-        {/* PDF */}
-        {job.pdfFileId && (
-          <div className="mb-6">
-            <h3 className="text-sm font-bold text-[#1E3A5F] mb-2 border-b pb-1">添付資料</h3>
-            {job.pdfFileId && (
-              <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <div className="mb-4 text-[#1E3A5F]">
-                   <ExternalLink size={48} />
-                </div>
-                <p className="text-gray-600 mb-4 font-medium">PDFファイルが添付されています</p>
-                
-                {pdfUrl ? (
-                  <a href={pdfUrl} target="_blank" className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-[#1E3A5F] text-sm hover:bg-gray-50 transition-colors">
-                    <ExternalLink size={16} /> 別タブで開く
-                  </a>
-                ) : (
-                   <Button variant="outline" isLoading={pdfLoading} onClick={async () => {
-                      if (!job.pdfFileId) return;
-                      setPdfLoading(true);
-                      try {
-                        const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
-                        if (token) {
-                          const res = await fetch(`/api/pdf/${job.pdfFileId}`, {
-                            headers: { Authorization: `Bearer ${token}` }
-                          });
-                          if (res.ok) {
-                            const blob = await res.blob();
-                            setPdfUrl(URL.createObjectURL(blob));
-                          }
-                        }
-                      } catch(e) { console.error(e); alert('PDF取得エラー'); } finally { setPdfLoading(false); }
-                   }}>
-                     PDFを読み込む
-                   </Button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </Card>
-
-      {/* Applications Section */}
-      <div className="pt-6">
-         <h2 className="text-xl font-bold text-[#1E3A5F] mb-4 border-b pb-2">応募者一覧 ({applications.length}名)</h2>
-         
-         {applications.length === 0 ? (
-            <Card className="p-8 text-center text-gray-500">
-               <p>現在、この求人への応募者はいません。</p>
-            </Card>
-         ) : (
-            <div className="grid gap-4">
-               {applications.map(app => (
-                  <Card key={app.id} className="p-5">
-                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                           <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-lg font-bold text-[#1E3A5F]">{app.student.name}</h3>
-                              <Badge variant="outline" className="text-xs">{app.student.university || '大学未設定'}</Badge>
-                           </div>
-                           <div className="flex gap-2 mb-2 text-xs">
-                              {app.status === 'pending_admin' && <Badge variant="warning">管理者承認待ち</Badge>}
-                              {app.status === 'pending_company' && <Badge variant="warning" className="animate-pulse">対応待ち</Badge>}
-                              {app.status === 'pending_student' && <Badge variant="success">オファー済み</Badge>}
-                              {app.status === 'matched' && <Badge variant="success" className="bg-green-600 text-white">マッチング成立</Badge>}
-                              {app.status.includes('rejected') && <Badge variant="error" className="bg-gray-100 text-gray-500">不採用</Badge>}
-                           </div>
-                           <div className="text-xs text-gray-500 flex items-center gap-1">
-                              <Clock size={12} />
-                              応募日: {format(app.createdAt.toDate(), 'yyyy/MM/dd HH:mm')}
-                           </div>
-                           {app.interviewDate && (
-                              <div className="text-xs text-[#2B6CB0] font-medium mt-1">
-                                 面談予定: {app.interviewDate}
-                              </div>
-                           )}
-                        </div>
-                        <div className="flex gap-2">
-                           {app.status === 'matched' && (
-                             <Link href={`/company/interns/${app.matchId || app.id}`}>
-                               <Button size="sm" className="bg-[#1E3A5F] hover:bg-[#16304F]">インターン管理</Button>
-                             </Link>
-                           )}
-                           <Button 
-                              variant="outline" size="sm" 
-                              onClick={() => {
-                                 setSelectedApp(app);
-                                 setInterviewDate(app.interviewDate || '');
-                              }}
-                           >
-                              詳細・面談日設定
-                           </Button>
-                        </div>
-                     </div>
-                  </Card>
-               ))}
-            </div>
-         )}
-      </div>
-
-      {/* Student Profile Modal */}
-      <Modal isOpen={!!selectedApp} onClose={() => setSelectedApp(null)} title="応募者詳細">
-         {selectedApp && (
-            <div className="space-y-4 max-h-[80vh] overflow-y-auto p-1">
-               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="text-xs text-gray-500">氏名</label>
-                    <p className="font-medium text-lg">{selectedApp.student.name}</p>
-                 </div>
-                 <div>
-                    <label className="text-xs text-gray-500">所属</label>
-                    <p className="font-medium">{selectedApp.student.university} {selectedApp.student.grade}</p>
-                 </div>
-               </div>
-               
-               <div>
-                  <label className="text-xs text-gray-500">自己PR / BIO</label>
-                  <div className="bg-gray-50 p-3 rounded-lg text-sm whitespace-pre-wrap">
-                     {selectedApp.student.bio || '未入力'}
-                  </div>
-               </div>
-               
-               <div>
-                  <label className="text-xs text-gray-500">スキル</label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                     {selectedApp.student.skills?.map((skill, i) => (
-                        <Badge key={i} variant="outline" className="text-xs">{skill}</Badge>
-                     ))}
-                  </div>
-               </div>
-               
-               <div className="border-t pt-4">
-                  <label className="text-sm font-bold text-[#1E3A5F]">面談日の設定</label>
-                  <p className="text-xs text-gray-500 mb-2">承認/否認を行う前に、面談日（予定や実施済み日時）を登録してください。</p>
-                  <div className="flex gap-2">
-                     <Input 
-                        type="datetime-local"
-                        value={interviewDate} 
-                        onChange={(e) => setInterviewDate(e.target.value)} 
-                        disabled={selectedApp.status !== 'pending_company'}
-                     />
-                     {selectedApp.status === 'pending_company' && (
-                        <Button 
-                           onClick={handleSaveInterviewDate} 
-                           isLoading={savingInterview}
-                           disabled={!interviewDate.trim()}
-                        >
-                           保存
-                        </Button>
-                     )}
-                  </div>
-               </div>
-               
-               {/* Actions in Profile Modal */}
-               {selectedApp.status === 'pending_company' && (
-                  <div className="flex gap-2 justify-end mt-4 pt-4 border-t">
-                     <Button 
-                        variant="danger"
-                        className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-                        onClick={() => { setSelectedApp(null); openStatusModal(selectedApp, 'reject'); }}
-                        disabled={!selectedApp.interviewDate}
-                     >
-                        不採用
-                     </Button>
-                     <Button 
-                        onClick={() => { setSelectedApp(null); openStatusModal(selectedApp, 'offer'); }}
-                        className="bg-[#48BB78] hover:bg-[#48BB78]/90"
-                        disabled={!selectedApp.interviewDate}
-                     >
-                        オファー承認
-                     </Button>
-                  </div>
-               )}
-            </div>
-         )}
-      </Modal>
-
-      {/* Confirmation / Message Modal */}
-      <Modal 
-         isOpen={!!confirmModal} 
-         onClose={() => setConfirmModal(null)} 
-         title={confirmModal?.action === 'offer' ? 'オファー承認・メッセージ送信' : '不採用通知'}
-      >
-         <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-               {confirmModal?.action === 'offer' 
-                  ? '学生にマッチングオファーを送ります。以下のメッセージがメールで送信されます。'
-                  : 'この学生を不採用にします。この操作は取り消せません。'
-               }
-            </p>
-
-            <div>
-               <label className="block text-sm font-medium text-gray-700 mb-1">
-                  メッセージ
-               </label>
-               <textarea
-                  className="w-full h-32 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="メッセージを入力してください..."
-               />
-               <p className="text-xs text-gray-400 mt-1">
-                  ※ このメッセージはメール通知に含まれます。
-               </p>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t">
-               <Button variant="secondary" onClick={() => setConfirmModal(null)}>
-                  キャンセル
-               </Button>
-               <Button 
-                  onClick={handleExecuteStatusUpdate}
-                  isLoading={!!processing}
-                  className={confirmModal?.action === 'offer' ? "bg-[#48BB78]" : "bg-red-600 hover:bg-red-700 text-white"}
-               >
-                  {confirmModal?.action === 'offer' ? 'オファーを送る' : '不採用にする'}
-               </Button>
-            </div>
          </div>
-      </Modal>
+
+         {job.status === 'pending_approval' && (
+           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-sm text-amber-800">
+             ⏳ 管理者による承認を待っています。承認後に学生へ公開されます。
+           </div>
+         )}
+         {job.status === 'draft' && (
+           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-6 text-sm text-gray-600">
+             📝 この求人は下書き状態です。管理者からの差し戻しによる可能性があります。
+           </div>
+         )}
+
+         <JobForm
+            initialData={job as any}
+            initialFiles={
+               job.pdfFileIds 
+                 ? job.pdfFileIds.map((id, index) => ({ name: `添付ファイル${index + 1}`, id })) 
+                 : (job.pdfFileId ? [{ name: '添付ファイル1', id: job.pdfFileId }] : [])
+            }
+            onSubmit={async (data) => {
+               setSaving(true);
+               try {
+                  await updateDoc(doc(db, 'jobPostings', id), {
+                     ...data,
+                     pdfFileIds: data.pdfFileIds,
+                     pdfFileId: data.pdfFileIds[0] || null, // legacy
+                     updatedAt: serverTimestamp()
+                  });
+                  setJob(prev => prev ? { ...prev, ...data } as any : null);
+                  alert('求人情報を更新しました');
+               } catch(e) { 
+                  console.error(e);
+                  alert('更新エラー');
+               } finally { 
+                  setSaving(false); 
+               }
+            }}
+            onCancel={() => router.push('/company/jobs')}
+            loading={saving}
+            submitLabel="更新する"
+         />
+      </Card>
     </div>
   );
 }

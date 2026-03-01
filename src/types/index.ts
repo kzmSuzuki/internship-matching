@@ -77,7 +77,8 @@ export interface JobPosting {
 
   location: string;
   status: JobStatus;
-  pdfFileId?: string; // Google Drive File ID
+  pdfFileId?: string; // Google Drive File ID (Single - legacy)
+  pdfFileIds?: string[]; // Multiple Google Drive File IDs
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
